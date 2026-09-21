@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/1 Domain/">
+    <Project Path="Domain/Snackis.Domain.csproj" Id="755d5667-6478-4154-a54f-27396bb777d1" />
+  </Folder>
+  <Folder Name="/2 Application/">
+    <Project Path="Application/Snackis.Application.csproj" Id="88a95da5-dc88-4037-be2d-01db6d92289c" />
+  </Folder>
+  <Folder Name="/3 Infrastructure/">
+    <Project Path="Infrastructure/Snackis.Infrastructure.csproj" Id="6b65ded6-da95-4291-bbda-6846ca8d06d5" />
+  </Folder>
+  <Folder Name="/4 Presentation/">
+    <Project Path="Snackis.API/Snackis.Api.csproj" Id="40768cf9-e421-4a1e-81d2-be08158046a7" />
+    <Project Path="Snackis.Web/Snackis.Web.csproj" Id="24279593-c7da-49d3-b992-487923bac79b" />
+  </Folder>
+  <Folder Name="/5 Tests/">
+    <Project Path="Snackis.Tests/Snackis.Tests.csproj" Id="19b2dcf1-65d0-4d71-a7cd-4652873c0187" />
+  </Folder>
+</Solution>
