@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
 using Snackis.Web.Components.Account.Pages;
 using Snackis.Web.Components.Account.Pages.Manage;
-using Snackis.Web.Data;
+using Snackis.Domain.Entities;
 using System.Security.Claims;
 using System.Text.Json;
 

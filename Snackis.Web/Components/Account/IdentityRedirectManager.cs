@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
-using Snackis.Web.Data;
+using Snackis.Domain.Entities;
 
 namespace Snackis.Web.Components.Account;
 

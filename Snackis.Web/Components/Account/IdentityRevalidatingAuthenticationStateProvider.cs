@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Snackis.Web.Data;
+using Snackis.Domain.Entities;
 using System.Security.Claims;
 
 namespace Snackis.Web.Components.Account;

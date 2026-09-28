@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Snackis.Infrastructure.Data;
 using Snackis.Web.Components;
 using Snackis.Web.Components.Account;
-using Snackis.Web.Data;
+using Snackis.Domain.Entities;
 
 namespace Snackis.Web;
 
