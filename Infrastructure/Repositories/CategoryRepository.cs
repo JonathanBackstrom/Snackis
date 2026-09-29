@@ -39,4 +39,6 @@ public class CategoryRepository(ApplicationDbContext context) : ICategoryReposit
         context.Categories.Update(category);
         await context.SaveChangesAsync();
     }
+    public async Task<bool> HasDiscussionsAsync(int categoryId)
+    => await context.Discussions.AnyAsync(d => d.CategoryId == categoryId);
 }

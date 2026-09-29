@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Snackis.Infrastructure.Data;
+using Snackis.Infrastructure;
 using Snackis.Web.Components;
 using Snackis.Web.Components.Account;
 using Snackis.Domain.Entities;
+using Snackis.Application;
 
 namespace Snackis.Web;
 
@@ -29,9 +30,9 @@ public class Program
             })
             .AddIdentityCookies();
 
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        builder.Services.AddApplication();
+        builder.Services.AddInfrastructure(builder.Configuration);
+
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddIdentityCore<ApplicationUser>(options =>
