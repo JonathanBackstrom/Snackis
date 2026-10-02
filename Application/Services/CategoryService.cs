@@ -12,7 +12,14 @@ public class CategoryService(ICategoryRepository repository) : ICategoryService
     public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto)
     {
         await ValidateParentAsync(dto.ParentCategoryId);
-        var created = await repository.AddAsync(dto.ToEntity());
+
+        var all = await repository.GetAllAsync();
+        var siblings = all.Where(c => c.ParentCategoryId == dto.ParentCategoryId).ToList();
+
+        var entity = dto.ToEntity();
+        entity.SortOrder = siblings.Count == 0 ? 1 : siblings.Max(c => c.SortOrder) + 1;
+
+        var created = await repository.AddAsync(entity);
         return created.ToDto([]);
     }
 

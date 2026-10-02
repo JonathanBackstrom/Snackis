@@ -13,7 +13,6 @@ public static class CategoryMappings
         Name = dto.Name,
         Description = dto.Description,
         ParentCategoryId = dto.ParentCategoryId,
-        SortOrder = dto.SortOrder
     };
 
     public static UpdateCategoryDto ToUpdateDto(this Category category)
@@ -23,7 +22,6 @@ public static class CategoryMappings
         Name = category.Name,
         Description = category.Description,
         ParentCategoryId = category.ParentCategoryId,
-        SortOrder = category.SortOrder
     };
 
     public static void ApplyTo(this UpdateCategoryDto dto, Category category)
@@ -31,6 +29,5 @@ public static class CategoryMappings
         category.Name = dto.Name;
         category.Description = dto.Description;
         category.ParentCategoryId = dto.ParentCategoryId;
-        category.SortOrder = dto.SortOrder;
     }
 }

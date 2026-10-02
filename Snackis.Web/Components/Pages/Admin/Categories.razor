@@ -1,0 +1,114 @@
+﻿@page "/admin/categories"
+
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject ICategoryService CategoryService
+
+<PageTitle>Kategorier</PageTitle>
+
+<h1>Kategorier</h1>
+
+
+@if (categories is null)
+{
+    <p>Laddar...</p>
+}
+else if (categories.Count == 0)
+{
+    <p>Inga kategorier ännu.</p>
+}
+else
+{
+    <ul>
+        @foreach (var category in categories)
+        {
+            <li>
+                @category.Name
+                @if (category.SubCategories.Count > 0)
+                {
+                    <ul>
+                        @foreach (var sub in category.SubCategories)
+                        {
+                            <li>@sub.Name</li>
+                        }
+                    </ul>
+                }
+            </li>
+        }
+    </ul>
+}
+
+<h2>Ny kategori</h2>
+
+<EditForm Model="newCategory" OnValidSubmit="HandleCreate">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <p>
+        <label>
+            Namn<br />
+            <InputText @bind-Value="newCategory.Name" />
+        </label>
+    </p>
+    <p>
+        <label>
+            Beskrivning<br />
+            <InputTextArea @bind-Value="newCategory.Description" />
+        </label>
+    </p>
+    <p>
+        <label>
+            Förälder<br />
+            <InputSelect @bind-Value="newCategory.ParentCategoryId">
+                <option value="">— Toppnivå —</option>
+                @foreach (var parent in topLevel ?? [])
+                {
+                    <option value="@parent.Id">@parent.Name</option>
+                }
+            </InputSelect>
+        </label>
+    </p>
+    <button type="submit">Skapa</button>
+</EditForm>
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
+
+
+@code 
+{
+    private IReadOnlyList<CategoryDto>? categories;
+    private CreateCategoryDto newCategory = new();
+    private IReadOnlyList<CategoryDto>? topLevel;
+    private string? error;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        categories = await CategoryService.GetTreeAsync();
+        topLevel = await CategoryService.GetTopLevelAsync();
+    }
+
+    private async Task HandleCreate()
+    {
+        error = null;
+
+        try
+        {
+            await CategoryService.CreateAsync(newCategory);
+            newCategory = new();
+            await LoadAsync();
+        }
+        catch (BusinessRuleException ex)
+        {
+            error = ex.Message;
+        }
+        catch (NotFoundException ex)
+        {
+            error = ex.Message;
+        }
+    }
+}
