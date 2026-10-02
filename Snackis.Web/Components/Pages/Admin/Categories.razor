@@ -24,18 +24,51 @@ else
         {
             <li>
                 @category.Name
+
+                <button @onclick="() => StartEdit(category.Id)">Redigera</button>
+                <button @onclick="() => HandleDelete(category.Id)">Radera</button>
+
                 @if (category.SubCategories.Count > 0)
                 {
                     <ul>
                         @foreach (var sub in category.SubCategories)
                         {
                             <li>@sub.Name</li>
+
+                            <button @onclick="() => StartEdit(sub.Id)">Redigera</button>
+                            <button @onclick="() => HandleDelete(sub.Id)">Radera</button>
                         }
                     </ul>
                 }
             </li>
         }
     </ul>
+
+    @if (editCategory is not null)
+    {
+        <h2>Redigera kategori</h2>
+
+        <EditForm Model="editCategory" OnValidSubmit="HandleUpdate">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <p>
+                <label>
+                    Namn<br />
+                    <InputText @bind-Value="editCategory.Name" />
+                </label>
+            </p>
+            <p>
+                <label>
+                    Beskrivning<br />
+                    <InputTextArea @bind-Value="editCategory.Description" />
+                </label>
+            </p>
+
+            <button type="submit">Spara</button>
+            <button type="button" @onclick="() => editCategory = null">Avbryt</button>
+        </EditForm>
+    }
 }
 
 <h2>Ny kategori</h2>
@@ -82,6 +115,7 @@ else
     private IReadOnlyList<CategoryDto>? categories;
     private CreateCategoryDto newCategory = new();
     private IReadOnlyList<CategoryDto>? topLevel;
+    private UpdateCategoryDto? editCategory;
     private string? error;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -102,13 +136,46 @@ else
             newCategory = new();
             await LoadAsync();
         }
-        catch (BusinessRuleException ex)
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
         {
             error = ex.Message;
         }
-        catch (NotFoundException ex)
+    }
+
+    private async Task HandleUpdate()
+    {
+        error = null;
+
+        try
+        {
+            await CategoryService.UpdateAsync(editCategory!);
+            editCategory = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
         {
             error = ex.Message;
         }
+    }
+
+    private async Task HandleDelete(int id)
+    {
+        error = null;
+
+        try
+        {
+            await CategoryService.DeleteAsync(id);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task StartEdit(int id)
+    {
+        error = null;
+        editCategory = await CategoryService.GetForEditAsync(id);
     }
 }
