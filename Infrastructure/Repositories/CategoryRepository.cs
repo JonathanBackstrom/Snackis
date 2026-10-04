@@ -36,7 +36,7 @@ public class CategoryRepository(ApplicationDbContext context) : ICategoryReposit
 
     public async Task UpdateAsync(Category category)
     {
-        context.Categories.Update(category);
+        context.Entry(category).State = EntityState.Modified;
         await context.SaveChangesAsync();
     }
     public async Task<bool> HasDiscussionsAsync(int categoryId)

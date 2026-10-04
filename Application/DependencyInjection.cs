@@ -9,6 +9,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IDiscussionService, DiscussionService>();
+        services.AddScoped<IPostService, PostService>();
         return services;
     }
 }
