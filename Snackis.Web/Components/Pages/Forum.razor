@@ -1,0 +1,49 @@
+﻿@page "/forum"
+@inject ICategoryService CategoryService
+
+<PageTitle>Forum</PageTitle>
+<h1>Snackis</h1>
+
+@if (categories is null)
+{
+    <p>Laddar...</p>
+}
+else if (categories.Count == 0)
+{
+    <p>Inga kategorier ännu.</p>
+}
+else
+{
+    <ul>
+        @foreach (var category in categories)
+        {
+            <li>
+                <a href="/categories/@category.Id">@category.Name</a>
+                @if (!string.IsNullOrWhiteSpace(category.Description))
+                {
+                    <p>@category.Description</p>
+                }
+
+                @if (category.SubCategories.Count > 0)
+                {
+                    <ul>
+                        @foreach (var sub in category.SubCategories)
+                        {
+                            <li><a href="/categories/@sub.Id">@sub.Name</a></li>
+                        }
+                    </ul>
+                }
+            </li>
+        
+        }
+    </ul>
+}
+
+
+@code
+{
+    private IReadOnlyList<CategoryDto>? categories;
+
+    protected override async Task OnInitializedAsync()
+    => categories = await CategoryService.GetTreeAsync();
+}

@@ -96,4 +96,12 @@ public class CategoryService(ICategoryRepository repository) : ICategoryService
     => all.Where(c => c.ParentCategoryId == parentId)
           .Select(c => c.ToDto(BuildTree(all, c.Id)))
           .ToList();
+
+    public async Task<CategoryDto> GetByIdAsync(int id)
+    {
+        var category = await repository.GetIdAsync(id)
+            ?? throw new NotFoundException($"Kategori med id {id} hittades inte.");
+
+                return category.ToDto([]);
+    }
 }

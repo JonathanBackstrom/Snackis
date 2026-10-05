@@ -1,0 +1,38 @@
+﻿<article>
+    <p>
+        @Post.AuthorName · @Post.CreatedAt.ToLocalTime().ToString("g")
+        @if (Post.EditedAt is not null)
+        {
+            <em>(redigerad)</em>
+        }
+    </p>
+
+    @if (Post.IsDeleted)
+    {
+        <p><em>[Inlägg borttaget]</em></p>
+    }
+    else
+    {
+        <p>@Post.Body</p>
+    }
+    @if (CanReply && !Post.IsDeleted)
+    {
+        <button @onclick="() => OnReply.InvokeAsync(Post.Id)">Svara</button>
+    }
+</article>
+
+@foreach (var reply in Post.Replies)
+{
+    <PostNode Post="reply" CanReply="CanReply" OnReply="OnReply" />
+}
+
+@code {
+    [Parameter]
+    public PostDto Post { get; set; } = default!;
+
+    [Parameter]
+    public bool CanReply { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnReply { get; set; }
+}

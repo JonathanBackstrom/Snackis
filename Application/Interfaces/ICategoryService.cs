@@ -4,6 +4,7 @@ namespace Snackis.Application.Interfaces;
 
 public interface ICategoryService
 {
+    Task<CategoryDto> GetByIdAsync(int id);
     Task<IReadOnlyList<CategoryDto>> GetTreeAsync();
     Task<IReadOnlyList<CategoryDto>> GetTopLevelAsync();
     Task<UpdateCategoryDto> GetForEditAsync(int id);

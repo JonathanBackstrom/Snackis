@@ -1,0 +1,72 @@
+﻿@page "/categories/{CategoryId:int}/new"
+@using System.Security.Claims
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IDiscussionService DiscussionService
+@inject NavigationManager Navigation
+
+<PageTitle>Ny tråd</PageTitle>
+
+<h1>Ny tråd</h1>
+
+<EditForm Model="newDiscussion" OnValidSubmit="HandleCreate">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <p>
+        <label>
+            Rubrik<br />
+            <InputText @bind-Value="newDiscussion.Title" />
+        </label>
+    </p>
+    <p>
+        <label>
+            Inlägg<br />
+            <InputTextArea @bind-Value="newDiscussion.Body" rows="8" />
+        </label>
+    </p>
+
+    <button type="submit">Skapa tråd</button>
+    <a href="/categories/@CategoryId">Avbryt</a>
+</EditForm>
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
+
+@code 
+{
+    [Parameter]
+    public int CategoryId { get; set; }
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private CreateDiscussionDto newDiscussion = new();
+    private string? userId;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        newDiscussion.CategoryId = CategoryId;
+    }
+
+    private async Task HandleCreate()
+    {
+        error = null;
+
+        try
+        {
+            var id = await DiscussionService.CreateAsync(newDiscussion, userId!);
+            Navigation.NavigateTo($"/discussions/{id}");
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+}

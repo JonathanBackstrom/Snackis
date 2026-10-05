@@ -1,0 +1,121 @@
+﻿@page "/discussions/{Id:int}"
+
+@rendermode InteractiveServer
+@inject IDiscussionService DiscussionService
+@inject IPostService PostService
+
+@using System.Security.Claims
+
+<PageTitle>@discussion?.Title</PageTitle>
+
+@if (discussion is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <p><a href="/categories/@discussion.CategoryId">@discussion.CategoryName</a></p>
+    <h1>@discussion.Title</h1>
+
+    @if (discussion.IsLocked)
+    {
+        <p><strong>Tråden är låst av en moderator.</strong></p>
+    }
+
+    @foreach (var post in discussion.Posts)
+    {
+        <PostNode Post="post"
+                  CanReply="@(userId is not null && !discussion.IsLocked)"
+                  OnReply="StartReply" />
+    }
+    <AuthorizeView Context="auth">
+        <Authorized>
+            @if (!discussion.IsLocked)
+            {
+                <EditForm Model="newPost" OnValidSubmit="HandleReply">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    @if (replyToPostId is not null)
+                    {
+                        <p>
+                            Svarar på inlägg #@replyToPostId
+                            <button type="button" @onclick="() => replyToPostId = null">Avbryt</button>
+                        </p>
+                    }
+
+                    <p>
+                        <InputTextArea @bind-Value="newPost.Body" rows="4" />
+                    </p>
+
+                    <button type="submit">Svara</button>
+                </EditForm>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <p><a href="/Account/Login">Logga in</a> för att svara.</p>
+        </NotAuthorized>
+    </AuthorizeView>
+
+    @if (error is not null)
+    {
+        <p class="text-danger">@error</p>
+    }
+}
+
+@code
+{
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private DiscussionDetailDto? discussion;
+    private string? userId;
+    private bool isAdmin;
+    private CreatePostDto newPost = new();
+    private string? error;
+    private int? replyToPostId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = state.User.IsInRole("Admin");
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        discussion = await DiscussionService.GetDetailAsync(Id);
+    }
+
+    private void StartReply(int postId)
+    {
+        replyToPostId = postId;
+        error = null;
+    }
+
+    private async Task HandleReply()
+    {
+        error = null;
+
+        try
+        {
+            newPost.DiscussionId = Id;
+            newPost.ParentPostId = replyToPostId;
+
+            await PostService.CreateAsync(newPost, userId!);
+
+            newPost = new();
+            replyToPostId = null;
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+}
