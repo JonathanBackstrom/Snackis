@@ -1,0 +1,110 @@
+﻿@page "/profile"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IProfileService ProfileService
+@using System.Security.Claims
+
+<PageTitle>Min profil</PageTitle>
+
+<h1>Min profil</h1>
+
+@if (profile is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <h2>@profile.DisplayName</h2>
+
+    @if (profile.AvatarPath is not null)
+    {
+        <img src="@profile.AvatarPath" alt="Profilbild" width="120" />
+    }
+    else
+    {
+        <p>Ingen profilbild uppladdad.</p>
+    }
+
+    <p>
+        <InputFile OnChange="HandleAvatar" accept="image/*" />
+    </p>
+
+    <h3>Om mig</h3>
+
+    <p>
+        <textarea @bind="bio" rows="6" cols="50"></textarea>
+    </p>
+
+    <button @onclick="HandleBio">Spara</button>
+
+    @if (message is not null)
+    {
+        <p>@message</p>
+    }
+
+    @if (error is not null)
+    {
+        <p class="text-danger">@error</p>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private ProfileDto? profile;
+    private string? userId;
+    private string? bio;
+    private string? error;
+    private string? message;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        profile = await ProfileService.GetProfileAsync(userId!);
+        bio = profile.Bio;
+    }
+
+    private async Task HandleAvatar(InputFileChangeEventArgs e)
+    {
+        error = null;
+
+        try
+        {
+            var file = e.File;
+
+            await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+
+            await ProfileService.UpdateAvatarAsync(userId!, stream, file.Name, file.Size);
+
+            profile = await ProfileService.GetProfileAsync(userId!);
+        }
+        catch (IOException)
+        {
+            error = "Bilden är för stor. Högst 2 MB.";
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task HandleBio()
+    {
+        error = null;
+        message = null;
+
+        try
+        {
+            await ProfileService.UpdateBioAsync(userId!, bio);
+            profile = await ProfileService.GetProfileAsync(userId!);
+            message = "Sparat.";
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+}

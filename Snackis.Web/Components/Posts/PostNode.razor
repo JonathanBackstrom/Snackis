@@ -1,5 +1,10 @@
 ﻿<article>
+    @if (Post.AvatarPath is not null)
+    {
+        <img src="@Post.AvatarPath" alt="" width="48" height="48" />
+    }
     <p>
+
         @Post.AuthorName · @Post.CreatedAt.ToLocalTime().ToString("g")
         @if (Post.EditedAt is not null)
         {

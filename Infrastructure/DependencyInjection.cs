@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Snackis.Application.Interfaces;
 using Snackis.Domain.Interfaces;
 using Snackis.Infrastructure.Data;
 using Snackis.Infrastructure.Repositories;
+using Snackis.Infrastructure.Storage;
 
 namespace Snackis.Infrastructure;
 
@@ -19,7 +21,14 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IDiscussionRepository, DiscussionRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddFileStorage(this IServiceCollection services, string rootPath)
+    {
+        services.AddSingleton<IFileStorage>(new LocalFileStorage(rootPath));
         return services;
     }
 }
