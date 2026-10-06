@@ -32,6 +32,8 @@ public class Program
 
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
+
+        builder.Services.AddProfiles();
         builder.Services.AddFileStorage(Path.Combine(builder.Environment.WebRootPath, "uploads"));
 
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();

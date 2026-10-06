@@ -1,6 +1,9 @@
-@Snackis.API_HostAddress = http://localhost:5245
+@Snackis.Api_HostAddress = https://localhost:7141
 
-GET {{Snackis.API_HostAddress}}/weatherforecast/
+GET {{Snackis.Api_HostAddress}}/api/discussions/1/posts
 Accept: application/json
 
 ###
+
+GET {{Snackis.Api_HostAddress}}/api/discussions/999/posts
+Accept: application/json

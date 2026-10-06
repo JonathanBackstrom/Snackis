@@ -55,4 +55,16 @@ public class PostService(IPostRepository postRepository, IDiscussionRepository d
         await postRepository.UpdateAsync(post);
 
     }
+
+    public async Task<IReadOnlyList<PostListDto>> GetByDiscussionAsync(int discussionId)
+    {
+        _ = await discussionRepository.GetIdAsync(discussionId)
+            ?? throw new NotFoundException($"diskussionen med id {discussionId} hittades inte");
+
+        var posts = await postRepository.GetByDiscussionIdAsync(discussionId);
+
+        return posts
+            .Select(p => p.IsDeleted ? p.ToListDto() with { Body = string.Empty } : p.ToListDto())
+            .ToList();
+    }
 }

@@ -16,6 +16,16 @@ public static class PostMappings
         post.IsDeleted,
         replies);
 
+    public static PostListDto ToListDto(this Post post) => new(
+        post.Id,
+        post.ParentPostId,
+        post.Body,
+        post.Author.DisplayName ?? post.Author.UserName ?? "Okänd",
+        post.CreatedAt,
+        post.EditedAt,
+        post.IsDeleted
+        );
+
     public static Post ToEntity(this CreatePostDto dto,string authorId)
         => new()
         {

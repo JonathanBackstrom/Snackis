@@ -1,5 +1,8 @@
 
-namespace Snackis.API;
+using Snackis.Application;
+using Snackis.Infrastructure;
+
+namespace Snackis.Api;
 
 public class Program
 {
@@ -13,6 +16,9 @@ public class Program
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
+        builder.Services.AddApplication();
+        builder.Services.AddInfrastructure(builder.Configuration);
+
         var app = builder.Build();
 
         // Configure the HTTP request pipeline.
@@ -22,9 +28,6 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
 
         app.MapControllers();
 
