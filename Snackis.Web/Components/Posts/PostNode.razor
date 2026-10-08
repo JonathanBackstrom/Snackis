@@ -5,7 +5,7 @@
     }
     <p>
 
-        @Post.AuthorName · @Post.CreatedAt.ToLocalTime().ToString("g")
+        <a href="/users/@Post.AuthorId">@Post.AuthorName</a> · @Post.CreatedAt.ToLocalTime().ToString("g")
         @if (Post.EditedAt is not null)
         {
             <em>(redigerad)</em>

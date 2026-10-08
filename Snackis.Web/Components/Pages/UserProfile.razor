@@ -1,0 +1,84 @@
+﻿@page "/users/{Id}"
+@rendermode InteractiveServer
+@inject IProfileService profileService
+@inject IConversationService conversationService
+@inject NavigationManager Navigation
+@using System.Security.Claims
+
+<PageTitle>@(profile?.DisplayName ?? "Profil")</PageTitle>
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
+else if (profile is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <h1>@profile.DisplayName</h1>
+
+    @if (profile.AvatarPath is not null)
+    {
+        <img src="@profile.AvatarPath" alt="" width="120" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(profile.Bio))
+    {
+        <p>@profile.Bio</p>
+    }
+
+    <p>Medlem sedan @profile.CreatedAt.ToLocalTime().ToString("d")</p>
+
+    <AuthorizeView>
+        <Authorized>
+            @if (userId != Id)
+            {
+                <button @onclick="StartConversation">Skicka meddelande</button>
+            }
+        </Authorized>
+    </AuthorizeView>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private ProfileDto? profile;
+    private string? userId;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        try
+        {
+            profile = await profileService.GetProfileAsync(Id);
+        }
+        catch (NotFoundException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task StartConversation()
+    {
+        error = null;
+
+        try
+        {
+            var conversationID = await conversationService.StartDirectAsync(userId!, Id);
+            Navigation.NavigateTo($"/account/messages/{conversationID}");
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+}

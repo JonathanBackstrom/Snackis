@@ -1,0 +1,111 @@
+﻿@page "/account/messages/{Id:int}"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IConversationService ConversationService
+@using System.Security.Claims
+
+<PageTitle>@(conversation?.Title ?? "Meddelanden")</PageTitle>
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+    <p><a href="/account/messages">Tillbaka till meddelanden</a></p>
+}
+else if (conversation is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <h1>@conversation.Title</h1>
+
+    @if (conversation.IsGroup)
+    {
+        <p>Deltagare: @string.Join(", ", conversation.ParticipantNames)</p>
+    }
+
+    @if (conversation.Messages.Count == 0)
+    {
+        <p>Inga meddelanden</p>
+    }
+    else
+    {
+        @foreach (var message in conversation.Messages)
+        {
+            <article>
+                <p>
+                    @if (message.SenderAvatarPath is not null)
+                        {
+                         <img src="@message.SenderAvatarPath" alt="" width="32" height="32" />   
+                        }
+                        <strong>@message.SenderName</strong>
+                        · @message.SentAt.ToLocalTime().ToString("g")
+                </p>
+                <p>@message.Body</p>
+            </article>
+        }
+    }
+    <EditForm Model="newMessage" OnValidSubmit="HandleSend">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <p>
+            <InputTextArea @bind-Value="newMessage.Body" rows="3" />
+        </p>
+
+        <button type="submit">Skicka</button>
+    </EditForm>
+
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private ConversationDetailDto? conversation;
+    private SendMessageDto newMessage = new();
+    private string? userId;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        newMessage.ConversationId = Id;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            conversation = await ConversationService.GetAsync(Id, userId!);
+        }
+        catch (NotFoundException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task HandleSend()
+    {
+        error = null;
+
+        try
+        {
+            await ConversationService.SendAsync(newMessage, userId!);
+
+            newMessage = new() { ConversationId = Id };
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+}

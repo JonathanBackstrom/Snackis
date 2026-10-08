@@ -1,6 +1,40 @@
 ﻿@inherits LayoutComponentBase
 
-@Body
+<header>
+    <nav>
+        <a href="/forum">Snackis</a>
+
+        <AuthorizeView>
+            <Authorized>
+                <a href="/account">Mina sidor</a>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Admin">
+            <a href="/admin/categories">Admin</a>
+        </AuthorizeView>
+
+        <AuthorizeView>
+            <Authorized>
+                <span>@context.User.Identity?.Name</span>
+
+                <form action="Account/Logout" method="post">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="ReturnUrl" value="/forum" />
+                    <button type="submit">Logga ut</button>
+                </form>
+            </Authorized>
+            <NotAuthorized>
+                <a href="Account/Login">Logga in</a>
+                <a href="Account/Register">Registrera</a>
+            </NotAuthorized>
+        </AuthorizeView>
+    </nav>
+</header>
+
+<main>
+    @Body
+</main>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

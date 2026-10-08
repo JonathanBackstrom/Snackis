@@ -1,0 +1,54 @@
+﻿@page "/account/messages"
+@attribute [Authorize]
+@inject IConversationService ConversationService
+@using System.Security.Claims
+
+<PageTitle>Meddelanden</PageTitle>
+
+<h1>Meddelanden</h1>
+
+@if (conversations is null)
+{
+    <p>Laddar...</p>
+}
+else if (conversations.Count == 0)
+{
+    <p>Du har inga meddelanden än.</p>
+}
+else
+{
+    <ul>
+        @foreach (var conversation in conversations)
+        {
+            <li>
+                <a href="/account/messages/@conversation.Id">@conversation.Title</a>
+
+                @if (conversation.UnreadCount > 0)
+                {
+                    <strong>(@conversation.UnreadCount nya)</strong>
+                }
+
+                @if (conversation.LastMessage is not null)
+                {
+                    <p>@conversation.LastMessage · @conversation.LastMessageAt?.ToLocalTime().ToString("g")</p>
+                }
+            </li>
+        }
+    </ul>
+}
+
+
+@code {
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private IReadOnlyList<ConversationListDto>? conversations;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        var userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        conversations = await ConversationService.GetInboxAsync(userId!);
+    }
+}

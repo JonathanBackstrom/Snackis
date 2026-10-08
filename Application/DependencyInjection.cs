@@ -11,6 +11,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IDiscussionService, DiscussionService>();
         services.AddScoped<IPostService, PostService>();
+        services.AddScoped<IConversationService, ConversationService>();
         return services;
     }
     public static IServiceCollection AddProfiles(this IServiceCollection services)
