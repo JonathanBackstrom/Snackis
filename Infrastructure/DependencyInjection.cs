@@ -16,7 +16,11 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection saknas.");
 
-        services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddDbContextFactory<ApplicationDbContext>(options =>
+            options.UseSqlServer(connectionString));
+
+        services.AddScoped<ApplicationDbContext>(sp =>
+            sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());
 
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IDiscussionRepository, DiscussionRepository>();
