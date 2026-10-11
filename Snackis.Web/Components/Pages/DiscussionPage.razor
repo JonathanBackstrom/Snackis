@@ -3,6 +3,7 @@
 @rendermode InteractiveServer
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
+@inject IReportService ReportService
 
 @using System.Security.Claims
 
@@ -25,8 +26,11 @@ else
     @foreach (var post in discussion.Posts)
     {
         <PostNode Post="post"
-                  CanReply="@(userId is not null && !discussion.IsLocked)"
-                  OnReply="StartReply" />
+                  CurrentUserId="@userId"
+                  IsAdmin="isAdmin"
+                  IsLocked="discussion.IsLocked"
+                  OnReply="StartReply"
+                  OnReport="StartReport" />
     }
     <AuthorizeView Context="auth">
         <Authorized>
@@ -57,6 +61,31 @@ else
         </NotAuthorized>
     </AuthorizeView>
 
+    @if (reportPostId is not null)
+    {
+        <EditForm Model="newReport" OnValidSubmit="HandleReport">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <h2>Anmäl inlägg</h2>
+
+            <p>
+                <label>
+                    Varför anmäler du inlägget?<br />
+                    <InputTextArea @bind-Value="newReport.Reason" rows="3" />
+                </label>
+            </p>
+
+            <button type="submit">Skicka anmälan</button>
+            <button type="button" @onclick="() => reportPostId = null">Avbryt</button>
+        </EditForm>
+    }
+
+    @if (message is not null)
+    {
+        <p>@message</p>
+    }
+
     @if (error is not null)
     {
         <p class="text-danger">@error</p>
@@ -77,6 +106,9 @@ else
     private CreatePostDto newPost = new();
     private string? error;
     private int? replyToPostId;
+    private int? reportPostId;
+    private CreateReportDto newReport = new();
+    private string? message;
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,6 +128,9 @@ else
     {
         replyToPostId = postId;
         error = null;
+
+        error = null;
+        message = null;
     }
 
     private async Task HandleReply()
@@ -112,6 +147,33 @@ else
             newPost = new();
             replyToPostId = null;
             await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void StartReport(int postID)
+    {
+        reportPostId = postID;
+        newReport = new() { PostId = postID };
+        replyToPostId = null;
+
+        error = null;
+        message = null;
+    }
+
+    private async Task HandleReport()
+    {
+        error = null;
+        try
+        {
+            await ReportService.CreateAsync(newReport, userId!);
+
+            reportPostId = null;
+            newReport = new();
+            message = "Tack, din anmälan har skickats till moderatorerna.";
         }
         catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
         {

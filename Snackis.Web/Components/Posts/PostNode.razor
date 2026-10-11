@@ -20,24 +20,44 @@
     {
         <p>@Post.Body</p>
     }
-    @if (CanReply && !Post.IsDeleted)
+    @if (CurrentUserId is not null && !IsLocked && !Post.IsDeleted)
     {
         <button @onclick="() => OnReply.InvokeAsync(Post.Id)">Svara</button>
     }
+
+    @if (CurrentUserId is not null && Post.AuthorId != CurrentUserId && !Post.IsDeleted)
+    {
+        <button @onclick="() => OnReport.InvokeAsync(Post.Id)">Anmäl</button>
+    }
 </article>
 
-@foreach (var reply in Post.Replies)
-{
-    <PostNode Post="reply" CanReply="CanReply" OnReply="OnReply" />
-}
+    @foreach (var reply in Post.Replies)
+    {
+        <PostNode Post="reply"
+                  CurrentUserId="@CurrentUserId"
+                  IsAdmin="IsAdmin"
+                  IsLocked="IsLocked"
+                  OnReply="OnReply"
+                  OnReport="OnReport" />
+    }
+
 
 @code {
     [Parameter]
     public PostDto Post { get; set; } = default!;
 
     [Parameter]
-    public bool CanReply { get; set; }
+    public string? CurrentUserId { get; set; }
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
+    public bool IsLocked { get; set; }
 
     [Parameter]
     public EventCallback<int> OnReply { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnReport { get; set; }
 }

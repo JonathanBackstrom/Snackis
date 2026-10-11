@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<IDiscussionService, DiscussionService>();
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<IConversationService, ConversationService>();
+        services.AddScoped<IReportService, ReportService>();
         return services;
     }
     public static IServiceCollection AddProfiles(this IServiceCollection services)

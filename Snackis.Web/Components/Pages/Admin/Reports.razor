@@ -1,0 +1,81 @@
+﻿@page "/admin/reports"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IReportService ReportService
+@using System.Security.Claims
+
+<PageTitle>Anmälningar</PageTitle>
+
+<h1>Anmälningar</h1>
+
+@if (reports is null)
+{
+    <p>Laddar...</p>
+}
+else if (reports.Count == 0)
+{
+    <p>Inga obehandlade anmälningar</p>    
+}
+else
+{
+    @foreach (var report in reports)
+    {
+        <article>
+            <p>Anmäld av @report.ReporterName · @report.CreatedAt.ToLocalTime().ToString("g")</p>
+
+            <p><strong>Motivering:</strong> @report.reason</p>
+
+            <blockquote>
+                <p>@report.PostBody</p>
+                <footer>- @report.PostAuthorName</footer>
+            </blockquote>
+
+            <p><a href="/discussion/@report.DiscussionId">Visa i tråden</a></p>
+
+            <button @onclick="() => RemovePost(report.Id)">Ta bort inlägget</button>
+            <button @onclick="() => Reject(report.Id)">Avvisa anmälan</button>
+        </article>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthState { get; set; }
+
+    private IReadOnlyList<ReportListDto>? reports;
+    private string? adminId;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState!;
+        adminId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        await LoadAsync();
+
+    }
+
+    private async Task LoadAsync()
+    {
+        reports = await ReportService.GetPendingAsync();
+    }
+
+    private Task RemovePost(int reportId) => HandleAsync(() => ReportService.RemovePostAsync(reportId, adminId!));
+
+    private Task Reject(int reportId) => HandleAsync(() => ReportService.RejectAsync(reportId, adminId!));
+
+    private async Task HandleAsync(Func<Task> action)
+    {
+        error = null;
+
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+}
