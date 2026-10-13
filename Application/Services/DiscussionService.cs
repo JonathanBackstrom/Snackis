@@ -7,7 +7,7 @@ using Snackis.Domain.Interfaces;
 
 namespace Snackis.Application.Services;
 
-public class DiscussionService(IDiscussionRepository discussionRepository, IPostRepository postRepository) : IDiscussionService
+public class DiscussionService(IDiscussionRepository discussionRepository, IPostRepository postRepository, IBannedWordService bannedWordService, IProfanityFilter profanityFilter) : IDiscussionService
 {
     public async Task<int> CreateAsync(CreateDiscussionDto dto, string authorId)
     {
@@ -21,7 +21,11 @@ public class DiscussionService(IDiscussionRepository discussionRepository, IPost
     public async Task<IReadOnlyList<DiscussionListDto>> GetByCategoryAsync(int categoryId)
     {
         var discussion = await discussionRepository.GetByCategoryIdAsync(categoryId);
-        return discussion.Select(d => d.ToListDto()).ToList();
+        var bannedWords = await bannedWordService.GetWordsAsync();
+
+        return discussion
+            .Select(d => d.ToListDto() with { Title = profanityFilter.Censor(d.Title, bannedWords) })
+            .ToList();
     }
 
     public async Task<DiscussionDetailDto> GetDetailAsync(int id)
@@ -31,14 +35,17 @@ public class DiscussionService(IDiscussionRepository discussionRepository, IPost
 
         var posts = await postRepository.GetByDiscussionIdAsync(id);
 
-        return discussion.ToDetailDto(BuildTree(posts, null));
+        var bannedWords = await bannedWordService.GetWordsAsync();
+
+        var dto = discussion.ToDetailDto(BuildTree(posts, null, bannedWords));
+
+        return dto with { Title = profanityFilter.Censor(dto.Title, bannedWords) };
     }
 
-    private static IReadOnlyList<PostDto> BuildTree(IReadOnlyList<Post> all, int? parentPostId)
+    private IReadOnlyList<PostDto> BuildTree(IReadOnlyList<Post> all, int? parentPostId, IReadOnlyList<string> bannedWords)
         => all.Where(p => p.ParentPostId == parentPostId)
-           .Select(p => p.ToDto(BuildTree(all, p.Id)))
+           .Select(p => p.ToDto(BuildTree(all, p.Id, bannedWords)) with { Body = profanityFilter.Censor(p.Body, bannedWords) })
            .ToList();
-
 
     public async Task SetLockedAsync(int discussionId, bool isLocked)
     {

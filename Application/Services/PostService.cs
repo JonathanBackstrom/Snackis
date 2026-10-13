@@ -6,7 +6,7 @@ using Snackis.Domain.Interfaces;
 
 namespace Snackis.Application.Services;
 
-public class PostService(IPostRepository postRepository, IDiscussionRepository discussionRepository) : IPostService
+public class PostService(IPostRepository postRepository, IDiscussionRepository discussionRepository, IBannedWordService bannedWordService, IProfanityFilter profanityFilter) : IPostService
 {
     public async Task<int> CreateAsync(CreatePostDto dto, string authorId)
     {
@@ -62,9 +62,12 @@ public class PostService(IPostRepository postRepository, IDiscussionRepository d
             ?? throw new NotFoundException($"diskussionen med id {discussionId} hittades inte");
 
         var posts = await postRepository.GetByDiscussionIdAsync(discussionId);
+        var bannedWords = await bannedWordService.GetWordsAsync();
 
         return posts
-            .Select(p => p.IsDeleted ? p.ToListDto() with { Body = string.Empty } : p.ToListDto())
+            .Select(p => p.IsDeleted 
+            ? p.ToListDto() with { Body = string.Empty } 
+            : p.ToListDto() with { Body = profanityFilter.Censor(p.Body, bannedWords) })
             .ToList();
     }
 }

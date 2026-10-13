@@ -10,12 +10,18 @@ public class PostServiceTests
     private const string Anna = "anna-id";
     private const string Bo = "bo-id";
 
+    private static PostService SkapaService(
+        FakePostRepository posts,
+        FakeDiscussionRepository discussions,
+        params string[] bannedWords)
+        => new(posts, discussions, new FakeBannedWordService(bannedWords), new ProfanityFilter());
+
     [Fact]
     public async Task CreateAsync_IOppenTrad_SparasOchFarId()
     {
         var discussions = new FakeDiscussionRepository(new Discussion { Title = "Vinterdack", AuthorId = Anna });
         var posts = new FakePostRepository();
-        var service = new PostService(posts, discussions);
+        var service = SkapaService(posts, discussions);
 
         var id = await service.CreateAsync(new CreatePostDto { DiscussionId = 1, Body = "Michelin" }, Bo);
 
@@ -28,7 +34,7 @@ public class PostServiceTests
         var discussions = new FakeDiscussionRepository(
             new Discussion { Title = "Vinterdack", AuthorId = Anna, IsLocked = true });
         var posts = new FakePostRepository();
-        var service = new PostService(posts, discussions);
+        var service = SkapaService(posts, discussions);
 
         var dto = new CreatePostDto { DiscussionId = 1, Body = "Michelin" };
 
@@ -40,7 +46,7 @@ public class PostServiceTests
     {
         var discussions = new FakeDiscussionRepository();
         var posts = new FakePostRepository();
-        var service = new PostService(posts, discussions);
+        var service = SkapaService(posts, discussions);
 
         var dto = new CreatePostDto { DiscussionId = 99, Body = "Michelin" };
 
@@ -52,7 +58,7 @@ public class PostServiceTests
     {
         var discussions = new FakeDiscussionRepository(new Discussion { Title = "Vinterdack", AuthorId = Anna });
         var posts = new FakePostRepository();
-        var service = new PostService(posts, discussions);
+        var service = SkapaService(posts, discussions);
 
         var dto = new CreatePostDto { DiscussionId = 1, ParentPostId = 99, Body = "Michelin" };
 
@@ -69,7 +75,7 @@ public class PostServiceTests
         var inlaggIAnnanTrad = new Post { DiscussionId = 2, AuthorId = Anna, Body = "Fel trad" };
         var posts = new FakePostRepository(inlaggIAnnanTrad);
 
-        var service = new PostService(posts, discussions);
+        var service = SkapaService(posts, discussions);
 
         var dto = new CreatePostDto
         {
@@ -86,7 +92,7 @@ public class PostServiceTests
     {
         var inlagg = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin" };
         var posts = new FakePostRepository(inlagg);
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         await service.UpdateAsync(new UpdatePostDto { Id = inlagg.Id, Body = "Nokian" }, Anna);
 
@@ -99,7 +105,7 @@ public class PostServiceTests
     {
         var inlagg = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin" };
         var posts = new FakePostRepository(inlagg);
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         var dto = new UpdatePostDto { Id = inlagg.Id, Body = "Nokian" };
 
@@ -110,7 +116,7 @@ public class PostServiceTests
     public async Task UpdateAsync_OkantInlagg_KastarNotFoundException()
     {
         var posts = new FakePostRepository();
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         var dto = new UpdatePostDto { Id = 99, Body = "Nokian" };
 
@@ -122,7 +128,7 @@ public class PostServiceTests
     {
         var inlagg = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin" };
         var posts = new FakePostRepository(inlagg);
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         await service.SoftDeleteAsync(inlagg.Id, Anna, isAdmin: false);
 
@@ -134,7 +140,7 @@ public class PostServiceTests
     {
         var inlagg = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin" };
         var posts = new FakePostRepository(inlagg);
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         await service.SoftDeleteAsync(inlagg.Id, Bo, isAdmin: true);
 
@@ -146,7 +152,7 @@ public class PostServiceTests
     {
         var inlagg = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin" };
         var posts = new FakePostRepository(inlagg);
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         await Assert.ThrowsAsync<BusinessRuleException>(
             () => service.SoftDeleteAsync(inlagg.Id, Bo, isAdmin: false));
@@ -157,7 +163,7 @@ public class PostServiceTests
     {
         var inlagg = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin" };
         var posts = new FakePostRepository(inlagg);
-        var service = new PostService(posts, new FakeDiscussionRepository());
+        var service = SkapaService(posts, new FakeDiscussionRepository());
 
         await service.SoftDeleteAsync(inlagg.Id, Anna, isAdmin: false);
 

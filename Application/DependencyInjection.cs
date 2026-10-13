@@ -13,6 +13,8 @@ public static class DependencyInjection
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<IConversationService, ConversationService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IBannedWordService, BannedWordService>();
+        services.AddSingleton<IProfanityFilter, ProfanityFilter>();
         return services;
     }
     public static IServiceCollection AddProfiles(this IServiceCollection services)

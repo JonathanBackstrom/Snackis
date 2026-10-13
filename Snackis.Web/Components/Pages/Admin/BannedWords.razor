@@ -1,0 +1,96 @@
+﻿@page "/admin/banned-words"
+@attribute [Authorize(Roles ="Admin")]
+@rendermode InteractiveServer
+
+@inject IBannedWordService BannedService
+
+<PageTitle>Förbjudna ord</PageTitle>
+
+<h1>Förbjudna ord</h1>
+
+@if (bannedWords is null)
+{
+    <p>Laddar...</p>
+}
+else if (bannedWords.Count == 0)
+{
+    <p>Inga förbjudna ord ännu.</p>
+}
+else
+{
+    <ul>
+        @foreach (var word in bannedWords)
+        {
+            <li>
+                @word.Word
+
+                <button @onclick="() => HandleDelete(word.Id)">Radera</button>
+            </li>
+        }
+    </ul>
+}
+
+<h2>Lägg till nytt ord</h2>
+<EditForm Model="newBannedWord" OnValidSubmit="HandleCreate">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <p>
+        <label>
+            Ord<br />
+            <InputText @bind-Value="newBannedWord.Word" />
+        </label>
+    </p>
+    <button type="submit">Lägg till</button>
+</EditForm>
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
+
+@code
+{
+    private IReadOnlyList<BannedWordDto>? bannedWords;
+    private CreateBannedWordDto newBannedWord = new();
+    private string? error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        bannedWords = await BannedService.GetAllAsync();
+    }
+
+    private async Task HandleCreate()
+    {
+        error = null;
+
+        try
+        {
+            await BannedService.AddAsync(newBannedWord);
+            newBannedWord = new();
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task HandleDelete(int id)
+    {
+        error = null;
+
+        try
+        {
+            await BannedService.DeleteAsync(id);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+}

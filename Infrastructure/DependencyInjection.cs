@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<IBannedWordRepository, BannedWordRepository>();
 
         return services;
     }

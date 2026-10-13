@@ -9,11 +9,17 @@ public class DiscussionServiceTests
 {
     private const string Anna = "anna-id";
 
+    private static DiscussionService SkapaService(
+        FakeDiscussionRepository discussions,
+        FakePostRepository posts,
+        params string[] bannedWords)
+        => new(discussions, posts, new FakeBannedWordService(bannedWords), new ProfanityFilter());
+
     [Fact]
     public async Task CreateAsync_SkaparTradOchForstaInlagget()
     {
         var discussions = new FakeDiscussionRepository();
-        var service = new DiscussionService(discussions, new FakePostRepository());
+        var service = SkapaService(discussions, new FakePostRepository());
 
         var dto = new CreateDiscussionDto
         {
@@ -35,7 +41,7 @@ public class DiscussionServiceTests
     [Fact]
     public async Task GetDetailAsync_OkantId_KastarNotFoundException()
     {
-        var service = new DiscussionService(new FakeDiscussionRepository(), new FakePostRepository());
+        var service = SkapaService(new FakeDiscussionRepository(), new FakePostRepository());
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.GetDetailAsync(99));
     }
@@ -51,7 +57,7 @@ public class DiscussionServiceTests
         var svarPaSvar = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Samma har", ParentPostId = 2 };
 
         var posts = new FakePostRepository(rot, svar, svarPaSvar);
-        var service = new DiscussionService(discussions, posts);
+        var service = SkapaService(discussions, posts);
 
         var detalj = await service.GetDetailAsync(1);
 
@@ -71,7 +77,7 @@ public class DiscussionServiceTests
         var svar = new Post { DiscussionId = 1, AuthorId = Anna, Body = "Michelin", ParentPostId = 1 };
 
         var posts = new FakePostRepository(rot, svar);
-        var service = new DiscussionService(discussions, posts);
+        var service = SkapaService(discussions, posts);
 
         var detalj = await service.GetDetailAsync(1);
 
@@ -87,7 +93,7 @@ public class DiscussionServiceTests
             new Discussion { Title = "Vinterdack", AuthorId = Anna, CategoryId = 1 },
             new Discussion { Title = "Batmotorer", AuthorId = Anna, CategoryId = 2 });
 
-        var service = new DiscussionService(discussions, new FakePostRepository());
+        var service = SkapaService(discussions, new FakePostRepository());
 
         var trad = await service.GetByCategoryAsync(1);
 
@@ -100,7 +106,7 @@ public class DiscussionServiceTests
     {
         var discussion = new Discussion { Title = "Vinterdack", AuthorId = Anna, CategoryId = 1 };
         var discussions = new FakeDiscussionRepository(discussion);
-        var service = new DiscussionService(discussions, new FakePostRepository());
+        var service = SkapaService(discussions, new FakePostRepository());
 
         await service.SetLockedAsync(discussion.Id, true);
 
@@ -110,7 +116,7 @@ public class DiscussionServiceTests
     [Fact]
     public async Task SetLockedAsync_OkantId_KastarNotFoundException()
     {
-        var service = new DiscussionService(new FakeDiscussionRepository(), new FakePostRepository());
+        var service = SkapaService(new FakeDiscussionRepository(), new FakePostRepository());
 
         await Assert.ThrowsAsync<NotFoundException>(() => service.SetLockedAsync(99, true));
     }
