@@ -14,7 +14,7 @@ public class PostServiceTests
         FakePostRepository posts,
         FakeDiscussionRepository discussions,
         params string[] bannedWords)
-        => new(posts, discussions, new FakeBannedWordService(bannedWords), new ProfanityFilter());
+        => new(posts, discussions, new FakeBannedWordService(bannedWords), new ProfanityFilter(), new FakePostImageRepository(), new FakeFileStorage());
 
     [Fact]
     public async Task CreateAsync_IOppenTrad_SparasOchFarId()

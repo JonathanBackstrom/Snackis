@@ -29,6 +29,8 @@ public static class DependencyInjection
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IBannedWordRepository, BannedWordRepository>();
+        services.AddScoped<IReactionRepository, ReactionRepository>();
+        services.AddScoped<IPostImageRepository, PostImageRepository>();
 
         return services;
     }

@@ -13,7 +13,7 @@ public class DiscussionServiceTests
         FakeDiscussionRepository discussions,
         FakePostRepository posts,
         params string[] bannedWords)
-        => new(discussions, posts, new FakeBannedWordService(bannedWords), new ProfanityFilter());
+        => new(discussions, posts, new FakeBannedWordService(bannedWords), new ProfanityFilter(), new FakeReactionRepository(), new FakePostImageRepository());
 
     [Fact]
     public async Task CreateAsync_SkaparTradOchForstaInlagget()
@@ -43,7 +43,7 @@ public class DiscussionServiceTests
     {
         var service = SkapaService(new FakeDiscussionRepository(), new FakePostRepository());
 
-        await Assert.ThrowsAsync<NotFoundException>(() => service.GetDetailAsync(99));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetDetailAsync(99, Anna));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class DiscussionServiceTests
         var posts = new FakePostRepository(rot, svar, svarPaSvar);
         var service = SkapaService(discussions, posts);
 
-        var detalj = await service.GetDetailAsync(1);
+        var detalj = await service.GetDetailAsync(1, Anna);
 
         var rotIDto = Assert.Single(detalj.Posts);
         var svarIDto = Assert.Single(rotIDto.Replies);
@@ -79,7 +79,7 @@ public class DiscussionServiceTests
         var posts = new FakePostRepository(rot, svar);
         var service = SkapaService(discussions, posts);
 
-        var detalj = await service.GetDetailAsync(1);
+        var detalj = await service.GetDetailAsync(1, Anna);
 
         var rotIDto = Assert.Single(detalj.Posts);
         Assert.True(rotIDto.IsDeleted);

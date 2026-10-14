@@ -2,11 +2,14 @@
 using Snackis.Application.Exceptions;
 using Snackis.Application.Interfaces;
 using Snackis.Application.Mappings;
+using Snackis.Application.Validation;
+using Snackis.Domain.Entities;
 using Snackis.Domain.Interfaces;
 
 namespace Snackis.Application.Services;
 
-public class PostService(IPostRepository postRepository, IDiscussionRepository discussionRepository, IBannedWordService bannedWordService, IProfanityFilter profanityFilter) : IPostService
+public class PostService(IPostRepository postRepository, IDiscussionRepository discussionRepository,
+    IBannedWordService bannedWordService, IProfanityFilter profanityFilter, IPostImageRepository postImageRepository, IFileStorage fileStorage) : IPostService
 {
     public async Task<int> CreateAsync(CreatePostDto dto, string authorId)
     {
@@ -69,5 +72,20 @@ public class PostService(IPostRepository postRepository, IDiscussionRepository d
             ? p.ToListDto() with { Body = string.Empty } 
             : p.ToListDto() with { Body = profanityFilter.Censor(p.Body, bannedWords) })
             .ToList();
+    }
+
+    public async Task AddImageAsync(int postId, Stream content, string fileName, long sizeInBytes, string userId)
+    {
+        var post = await postRepository.GetIdAsync(postId)
+            ?? throw new NotFoundException($"Inlägg med id {postId} hittades inte.");
+
+        if (post.AuthorId != userId)
+            throw new BusinessRuleException("Du kan bara lägga till bilder i dina egna inlägg");
+
+        ImageRules.Validate(fileName, sizeInBytes);
+
+        var path = await fileStorage.SaveAsync(content, fileName);
+
+        await postImageRepository.AddAsync(new PostImage { PostId = postId, Path = path });
     }
 }

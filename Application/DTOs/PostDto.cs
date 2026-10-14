@@ -1,4 +1,6 @@
-﻿namespace Snackis.Application.DTOs;
+﻿using Snackis.Domain.Enums;
+
+namespace Snackis.Application.DTOs;
 
 public record PostDto(
     int Id,
@@ -9,5 +11,8 @@ public record PostDto(
     DateTime CreatedAt,
     DateTime? EditedAt,
     bool IsDeleted,
-    IReadOnlyList<PostDto> Replies
+    IReadOnlyList<PostDto> Replies,
+    IReadOnlyDictionary<ReactionType, int>? ReactionCounts = null,
+    ReactionType? MyReaction = null,
+    IReadOnlyList<string>? ImagePaths = null
 );

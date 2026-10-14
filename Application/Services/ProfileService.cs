@@ -2,14 +2,13 @@
 using Snackis.Application.Exceptions;
 using Snackis.Application.Interfaces;
 using Snackis.Application.Mappings;
+using Snackis.Application.Validation;
 using Snackis.Domain.Interfaces;
 
 namespace Snackis.Application.Services;
 
 public class ProfileService(IUserRepository userRepository, IFileStorage fileStorage) : IProfileService
 {
-    private static readonly string[] allowedExtensions = [ ".jpg", ".jpeg", ".png", ".webp" ];
-
     public async Task<ProfileDto> GetProfileAsync(string userId)
     {
         var user = await userRepository.GetByIdAsync(userId)
@@ -23,15 +22,7 @@ public class ProfileService(IUserRepository userRepository, IFileStorage fileSto
         var user = await userRepository.GetByIdAsync(userId)
             ?? throw new NotFoundException($"Användare med ID {userId} hittades inte");
 
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
-
-        if (!allowedExtensions.Contains(extension))
-        {
-            throw new BusinessRuleException("Bild måste vara i JPG, JPEG, PNG eller WEBP-format");
-        }
-
-        if (sizeInBytes > 2 * 1024 * 1024)
-            throw new BusinessRuleException("Filstorlek överstiger gränsen på 2MB");
+        ImageRules.Validate(fileName, sizeInBytes);
 
         var newPath = await fileStorage.SaveAsync(content, fileName);
 

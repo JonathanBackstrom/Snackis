@@ -8,5 +8,6 @@ public interface IPostService
     Task SoftDeleteAsync(int postId, string userId, bool isAdmin);
     Task UpdateAsync(UpdatePostDto dto, string userId);
     Task<IReadOnlyList<PostListDto>> GetByDiscussionAsync(int discussionId);
+    Task AddImageAsync(int postId, Stream content, string fileName, long sizeInBytes, string userId);
 
 }

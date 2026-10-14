@@ -11,7 +11,6 @@
             <em>(redigerad)</em>
         }
     </p>
-
     @if (Post.IsDeleted)
     {
         <p><em>[Inlägg borttaget]</em></p>
@@ -19,6 +18,31 @@
     else
     {
         <p>@Post.Body</p>
+
+        @if (Post.ImagePaths is { Count: > 0 })
+        {
+            <div class="post-images">
+                @foreach (var path in Post.ImagePaths)
+                {
+                    <img src="@path" alt="" />
+                }
+            </div>
+        }
+    }
+    @if (!Post.IsDeleted)
+    {
+        <div class="reactions">
+            @foreach (var typ in reaktioner)
+            {
+                var antal = Post.ReactionCounts?.GetValueOrDefault(typ) ?? 0;
+
+                <button class="@(Post.MyReaction == typ ? "reaction active" : "reaction")"
+                        disabled="@(CurrentUserId is null)"
+                        @onclick="() => OnReact.InvokeAsync((Post.Id, typ))">
+                    @Etikett(typ)@(antal > 0 ? $" {antal}" : "")
+                </button>
+            }
+        </div>
     }
     @if (CurrentUserId is not null && !IsLocked && !Post.IsDeleted)
     {
@@ -38,7 +62,8 @@
                   IsAdmin="IsAdmin"
                   IsLocked="IsLocked"
                   OnReply="OnReply"
-                  OnReport="OnReport" />
+                  OnReport="OnReport"
+                  OnReact="OnReact"/>
     }
 
 
@@ -60,4 +85,25 @@
 
     [Parameter]
     public EventCallback<int> OnReport { get; set; }
+
+    [Parameter]
+    public EventCallback<(int PostId, ReactionType Type)> OnReact { get; set; }
+
+    private static readonly ReactionType[] reaktioner =
+[
+    ReactionType.Like, ReactionType.Dislike, ReactionType.Love,
+    ReactionType.Haha, ReactionType.Wow, ReactionType.Sad, ReactionType.Angry
+];
+
+    private static string Etikett(ReactionType type) => type switch
+    {
+        ReactionType.Like => "👍",
+        ReactionType.Dislike => "👎",
+        ReactionType.Love => "❤️",
+        ReactionType.Haha => "😄",
+        ReactionType.Wow => "😮",
+        ReactionType.Sad => "😢",
+        ReactionType.Angry => "😠",
+        _ => "?"
+    };
 }

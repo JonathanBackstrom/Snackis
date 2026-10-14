@@ -4,8 +4,10 @@
 @inject IDiscussionService DiscussionService
 @inject IPostService PostService
 @inject IReportService ReportService
+@inject IReactionService ReactionService
 
 @using System.Security.Claims
+@using Snackis.Application.Validation
 
 <PageTitle>@discussion?.Title</PageTitle>
 
@@ -30,7 +32,8 @@ else
                   IsAdmin="isAdmin"
                   IsLocked="discussion.IsLocked"
                   OnReply="StartReply"
-                  OnReport="StartReport" />
+                  OnReport="StartReport"
+                  OnReact="HandleReact"/>
     }
     <AuthorizeView Context="auth">
         <Authorized>
@@ -50,6 +53,10 @@ else
 
                     <p>
                         <InputTextArea @bind-Value="newPost.Body" rows="4" />
+                    </p>
+
+                    <p>
+                        <InputFile OnChange="HandleFiles" accept="image/*" multiple />
                     </p>
 
                     <button type="submit">Svara</button>
@@ -109,6 +116,7 @@ else
     private int? reportPostId;
     private CreateReportDto newReport = new();
     private string? message;
+    private IReadOnlyList<IBrowserFile> selectedFiles = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -121,7 +129,7 @@ else
 
     private async Task LoadAsync()
     {
-        discussion = await DiscussionService.GetDetailAsync(Id);
+        discussion = await DiscussionService.GetDetailAsync(Id, userId);
     }
 
     private void StartReply(int postId)
@@ -142,11 +150,23 @@ else
             newPost.DiscussionId = Id;
             newPost.ParentPostId = replyToPostId;
 
-            await PostService.CreateAsync(newPost, userId!);
+            var postId = await PostService.CreateAsync(newPost, userId!);
+
+            foreach (var fil in selectedFiles)
+            {
+                await using var stream = fil.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+                await PostService.AddImageAsync(postId, stream, fil.Name, fil.Size, userId!);
+            }
 
             newPost = new();
+            selectedFiles = [];
             replyToPostId = null;
+
             await LoadAsync();
+        }
+        catch (IOException)
+        {
+            error = "Inlägget skapades, men en bild kunde inte laddas upp.";
         }
         catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
         {
@@ -176,6 +196,43 @@ else
             message = "Tack, din anmälan har skickats till moderatorerna.";
         }
         catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task HandleReact((int PostId, ReactionType type) reaction)
+    {
+        error = null;
+
+        try
+        {
+            await ReactionService.ReactAsync(reaction.PostId, userId!, reaction.type);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private void HandleFiles(InputFileChangeEventArgs e)
+    {
+        error = null;
+        selectedFiles = [];
+
+        try
+        {
+            var files = e.GetMultipleFiles(maximumFileCount: 4);
+
+            foreach (var file in files)
+            {
+                ImageRules.Validate(file.Name, file.Size);
+            }
+
+            selectedFiles = files;
+        }
+        catch (BusinessRuleException ex)
         {
             error = ex.Message;
         }
