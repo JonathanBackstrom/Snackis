@@ -25,6 +25,7 @@ public class ConversationRepository(IDbContextFactory<ApplicationDbContext> fact
         return message;
     }
 
+
     public async Task<Conversation?> FindDirectAsync(string userIdA, string userIdB)
     {
         await using var context = await factory.CreateDbContextAsync();
@@ -86,6 +87,27 @@ public class ConversationRepository(IDbContextFactory<ApplicationDbContext> fact
         if (participant is null) return;
 
         participant.LastReadAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+    }
+    public async Task AddParticipantAsync(ConversationParticipant participant)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        context.ConversationParticipants.Add(participant);
+        await context.SaveChangesAsync();
+        return;
+    }
+
+    public async Task RemoveParticipantAsync(int conversationId, string userId)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        var participant = await context.ConversationParticipants
+            .FirstOrDefaultAsync(p => p.ConversationId == conversationId && p.UserId == userId);
+
+        if (participant is null) return;
+
+        context.ConversationParticipants.Remove(participant);
         await context.SaveChangesAsync();
     }
 }

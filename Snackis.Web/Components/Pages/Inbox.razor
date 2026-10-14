@@ -1,6 +1,10 @@
 ﻿@page "/account/messages"
 @attribute [Authorize]
+@rendermode InteractiveServer
+
+@inject NavigationManager Navigation
 @inject IConversationService ConversationService
+
 @using System.Security.Claims
 
 <PageTitle>Meddelanden</PageTitle>
@@ -37,18 +41,56 @@ else
     </ul>
 }
 
+<h2>Ny grupp</h2>
+
+<EditForm Model="newGroup" OnValidSubmit="HandleCreateGroup">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <p>
+        <label>
+            Gruppnamn <br />
+            <InputText @bind-Value="newGroup.Name" />
+        </label>
+    </p>
+
+    <button type="submit">Skapa grupp</button>
+</EditForm>
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
 
 @code {
     [CascadingParameter]
     public Task<AuthenticationState>? AuthState { get; set; }
+    private CreateGroupDto newGroup = new();
+    private string? userId;
+    private string? error;
 
     private IReadOnlyList<ConversationListDto>? conversations;
 
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState!;
-        var userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         conversations = await ConversationService.GetInboxAsync(userId!);
+    }
+
+    private async Task HandleCreateGroup()
+    {
+        error = null;
+
+        try
+        {
+            var id = await ConversationService.CreateGroupAsync(newGroup, userId!);
+            Navigation.NavigateTo($"/account/messages/{id}");
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
     }
 }

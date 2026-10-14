@@ -21,8 +21,12 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
             conversation.Id,
             BuildTitle(conversation, userId),
             conversation.IsGroup,
-            conversation.Participants.Select(p => DisplayName(p.User)).ToList(),
-            messages.Select(m => m.ToDto()).ToList());
+            conversation.OwnerId,
+            conversation.Participants
+                .Select(p => new ParticipantDto(p.UserId, DisplayName(p.User)))
+                .ToList(),
+            messages
+                .Select(m => m.ToDto()).ToList());
     }
 
     private static string DisplayName(ApplicationUser? user)
@@ -118,6 +122,110 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
         };
 
         var created = await conversationRepo.AddAsync(conversation);
+        return created.Id;
+    }
+
+    public async Task<int> CreateGroupAsync(CreateGroupDto dto, string ownerId)
+    {
+        var conversation = new Conversation
+        {
+            IsGroup = true,
+            Name = dto.Name.Trim(),
+            OwnerId = ownerId,
+            Participants = [new ConversationParticipant { UserId = ownerId}]
+        };
+
+        var created = await conversationRepo.AddAsync(conversation);
+        return created.Id;
+    }
+
+    public async Task<IReadOnlyList<ParticipantDto>> SearchInviteCandidatesAsync(int conversationId, string userId, string term)
+    {
+        var conversation = await GetForParticipantAsync(conversationId, userId);
+
+        if (string.IsNullOrWhiteSpace(term) || term.Trim().Length < 2)
+            return [];
+
+        var search = await userRepo.SearchByNameAsync(term.Trim());
+
+        var existing = conversation.Participants
+            .Select(p => p.UserId)
+            .ToHashSet();
+
+        return search
+            .Where(u => !existing.Contains(u.Id))
+            .Select(u => new ParticipantDto(u.Id, DisplayName(u)))
+            .ToList();
+    }
+
+    public async Task InviteAsync(int conversationId, string userId, string invitedUserId)
+    {
+        var conversation = await GetForParticipantAsync(conversationId, userId);
+
+        if (!conversation.IsGroup)
+            throw new BusinessRuleException("Du kan bara bjuda in till gruppkonversationer");
+
+        _ = await userRepo.GetByIdAsync(invitedUserId)
+            ?? throw new NotFoundException("Användaren hittades inte");
+
+        if (conversation.Participants.Any(p => p.UserId == invitedUserId))
+            throw new BusinessRuleException("Personen är redan med i gruppen");
+
+        await conversationRepo.AddParticipantAsync(new ConversationParticipant
+        {
+            ConversationId = conversationId,
+            UserId = invitedUserId
+        });
+    }
+
+    public async Task RemoveParticipantAsync(int conversationId, string ownerId, string userIdToRemove)
+    {
+        var conversation = await GetForParticipantAsync(conversationId, ownerId);
+
+        if (!conversation.IsGroup)
+            throw new BusinessRuleException("Deltagare kan bara tas bort ur grupper.");
+
+        if (conversation.OwnerId != ownerId)
+            throw new BusinessRuleException("Bara den som skapade gruppen kan ta bort deltagare.");
+
+        if (userIdToRemove == conversation.OwnerId)
+            throw new BusinessRuleException("Ägaren kan inte tas bort ur gruppen.");
+
+        if (!conversation.Participants.Any(p => p.UserId == userIdToRemove))
+            throw new NotFoundException("Personen är inte med i gruppen.");
+
+        await conversationRepo.RemoveParticipantAsync(conversationId, userIdToRemove);
+    }
+
+    public async Task<int> CreateGroupFromDirectAsync(int conversationId, string userId, CreateGroupDto dto, string invitedUserId)
+    {
+        var conversation = await GetForParticipantAsync(conversationId, userId);
+
+        if (conversation.IsGroup)
+            throw new BusinessRuleException("Konversationen är redan en grupp");
+
+        _ = await userRepo.GetByIdAsync(invitedUserId)
+            ?? throw new NotFoundException("Användaren hittades inte");
+
+        var participant = conversation.Participants
+            .Select(p => p.UserId)
+            .ToHashSet();
+
+        if (participant.Contains(invitedUserId))
+            throw new BusinessRuleException("Användaren är redan med i gruppen");
+
+        participant.Add(invitedUserId);
+
+        var group = new Conversation
+        {
+            IsGroup = true,
+            Name = dto.Name.Trim(),
+            OwnerId = userId,
+            Participants = [.. participant.Select(id => new ConversationParticipant { UserId = id})]
+        };
+
+        var created = await conversationRepo.AddAsync(group);
+
         return created.Id;
     }
 }

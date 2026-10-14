@@ -1,6 +1,8 @@
 ﻿@page "/account/messages/{Id:int}"
 @attribute [Authorize]
 @rendermode InteractiveServer
+
+@inject NavigationManager Navigation
 @inject IConversationService ConversationService
 @using System.Security.Claims
 
@@ -20,7 +22,72 @@ else
 
     @if (conversation.IsGroup)
     {
-        <p>Deltagare: @string.Join(", ", conversation.ParticipantNames)</p>
+        <h2>Deltagare</h2>
+
+        <ul>
+            @foreach (var deltagare in conversation.Participants)
+            {
+                <li>
+                    @deltagare.DisplayName
+
+                    @if (deltagare.UserId == conversation.OwnerId)
+                    {
+                        <em>(skapade gruppen)</em>
+                    }
+                    else if (conversation.OwnerId == userId)
+                    {
+                        <button @onclick="() => RemoveParticipant(deltagare.UserId)">Ta bort</button>
+                    }
+                </li>
+            }
+        </ul>
+
+        <h3>Bjud in någon</h3>
+
+        <input @bind="searchTerm" placeholder="Sök på namn" />
+        <button @onclick="Search">Sök</button>
+
+        @if (searchResults is not null)
+        {
+            @if (searchResults.Count == 0)
+            {
+                <p>Inga träffar.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var traff in searchResults)
+                    {
+                        <li>
+                            @traff.DisplayName
+                            <button @onclick="() => Invite(traff.UserId)">Bjud in</button>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    }
+    else
+    {
+        <h3>Skapa grupp</h3>
+        <p>Lägg till person i en ny gruppkonversation.</p>
+
+        <input @bind="newGroup.Name" placeholder="Gruppnamn" />
+        <input @bind="searchTerm" placeholder="Sök på namn" />
+        <button @onclick="Search">Sök</button>
+
+        @if (searchResults is not null)
+        {
+            <ul>
+                @foreach (var traff in searchResults)
+                {
+                    <li>
+                        @traff.DisplayName
+                        <button @onclick="() => CreateGroupFromDirect(traff.UserId)">Skapa grupp</button>
+                    </li>
+                }
+            </ul>
+        }
     }
 
     @if (conversation.Messages.Count == 0)
@@ -68,6 +135,9 @@ else
     private SendMessageDto newMessage = new();
     private string? userId;
     private string? error;
+    private string searchTerm = string.Empty;
+    private IReadOnlyList<ParticipantDto>? searchResults;
+    private CreateGroupDto newGroup = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,4 +178,66 @@ else
         }
     }
 
+    private async Task Search()
+    {
+        error = null;
+
+        try
+        {
+            searchResults = await ConversationService.SearchInviteCandidatesAsync(Id, userId!, searchTerm);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task Invite(string invitedUserId)
+    {
+        error = null;
+
+        try
+        {
+            await ConversationService.InviteAsync(Id, userId!, invitedUserId);
+
+            searchTerm = string.Empty;
+            searchResults = null;
+
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task RemoveParticipant(string userIdToRemove)
+    {
+        error = null;
+
+        try
+        {
+            await ConversationService.RemoveParticipantAsync(Id, userId!, userIdToRemove);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    private async Task CreateGroupFromDirect(string invitedUserId)
+    {
+        error = null;
+
+        try
+        {
+            var id = await ConversationService.CreateGroupFromDirectAsync(Id, userId!, newGroup, invitedUserId);
+            Navigation.NavigateTo($"/account/messages/{id}");
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
 }

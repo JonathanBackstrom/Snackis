@@ -11,4 +11,6 @@ public interface IConversationRepository
     Task<IReadOnlyList<Message>> GetMessagesAsync(int conversationId);
     Task<Message> AddMessageAsync(Message message);
     Task MarkAsReadAsync(int conversationId, string userId);
+    Task AddParticipantAsync(ConversationParticipant participant);
+    Task RemoveParticipantAsync(int conversationId, string userId);
 }

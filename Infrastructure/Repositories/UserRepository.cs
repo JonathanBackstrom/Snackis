@@ -14,6 +14,18 @@ public class UserRepository(IDbContextFactory<ApplicationDbContext> factory) : I
         return await context.Users.FirstOrDefaultAsync(u => u.Id == id);
     }
 
+    public async Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string term)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        return await context.Users
+            .AsNoTracking()
+            .Where(u => u.DisplayName != null && u.DisplayName.Contains(term))
+            .OrderBy(u => u.DisplayName)
+            .Take(10)
+            .ToListAsync();
+    }
+
     public async Task UpdateAsync(ApplicationUser user)
     {
         await using var context = await factory.CreateDbContextAsync();

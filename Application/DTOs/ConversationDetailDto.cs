@@ -4,5 +4,6 @@ public record ConversationDetailDto(
     int Id,
     string Title,
     bool IsGroup,
-    IReadOnlyList<string> ParticipantNames,
+    string OwnerId,
+    IReadOnlyList<ParticipantDto> Participants,
     IReadOnlyList<MessageDto> Messages);
