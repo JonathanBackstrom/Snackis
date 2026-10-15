@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IBannedWordRepository, BannedWordRepository>();
         services.AddScoped<IReactionRepository, ReactionRepository>();
         services.AddScoped<IPostImageRepository, PostImageRepository>();
+        services.AddScoped<IForumSettingsRepository, ForumSettingsRepository>();
 
         return services;
     }

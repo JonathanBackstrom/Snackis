@@ -1,0 +1,73 @@
+﻿@page "/admin/forum-settings"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject IForumSettingsService ForumSettingsService
+
+
+<PageTitle>Settings</PageTitle>
+
+<h1>Settings</h1>
+
+<h2>Forums rubrik</h2>
+
+@if (settings is null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <EditForm Model="settings" OnValidSubmit="HandleSave">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <p>
+            <label>
+                Rubrik<br />
+                <InputText @bind-Value="settings.Title" />
+            </label>
+        </p>
+
+        <button type="submit">Spara</button>
+    </EditForm>
+}
+
+@if (message is not null)
+{
+    <p>@message</p>
+}
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
+
+@code {
+    private UpdateForumSettingsDto? settings;
+    private string? message;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        settings = new UpdateForumSettingsDto
+            {
+                Title = await ForumSettingsService.GetTitleAsync()
+            };
+    }
+
+    private async Task HandleSave()
+    {
+        error = null;
+        message = null;
+
+        try
+        {
+            await ForumSettingsService.UpdateTitleAsync(settings!);
+            message = "Rubriken är sparad";
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+}

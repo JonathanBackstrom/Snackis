@@ -15,6 +15,8 @@ public static class DependencyInjection
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IBannedWordService, BannedWordService>();
         services.AddScoped<IReactionService, ReactionService>();
+        services.AddScoped<IForumSettingsService, ForumSettingsService>();
+
 
 
         services.AddSingleton<IProfanityFilter, ProfanityFilter>();

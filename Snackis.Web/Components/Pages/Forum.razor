@@ -1,9 +1,11 @@
 ﻿@page "/"
 @page "/forum"
+
 @inject ICategoryService CategoryService
+@inject IForumSettingsService ForumSettingsService
 
 <PageTitle>Forum</PageTitle>
-<h1>Snackis</h1>
+<h1>@title</h1>
 
 @if (categories is null)
 {
@@ -44,7 +46,11 @@ else
 @code
 {
     private IReadOnlyList<CategoryDto>? categories;
+    private string title = "Snackis";
 
     protected override async Task OnInitializedAsync()
-    => categories = await CategoryService.GetTreeAsync();
+    {
+        title = await ForumSettingsService.GetTitleAsync();
+        categories = await CategoryService.GetTreeAsync();
+    }
 }
