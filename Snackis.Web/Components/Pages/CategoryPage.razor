@@ -3,41 +3,65 @@
 @inject ICategoryService CategoryService
 
 <PageTitle>Kategori</PageTitle>
-<h1>@category?.Name</h1>
 
-@if (category is null || discussions is null)
+@if (notFound)
 {
-    <p>Laddar...</p>
-}
-else if (discussions.Count == 0)
-{
-    <p>Inga diskussioner ännu.</p>
+    <p>Kategorin kunde inte hittas.</p>
+    <p><a href="/forum">Tillbaka till forumet</a></p>
 }
 else
 {
-    <ul>
-        @foreach (var discussion in discussions)
-        {
-            <li>
-                <a href="/discussions/@discussion.Id">@discussion.Title</a>
-                @if (discussion.IsLocked)
-                {
-                    <span>(låst)</span>
-                }
-                <p>@discussion.AuthorName · @discussion.CreatedAt.ToLocalTime().ToString("g")</p>
-            </li>
-        }
-    </ul>
-}
-<AuthorizeView>
-    <Authorized>
-        <a href="/categories/@Id/new">Ny tråd</a>
-    </Authorized>
-    <NotAuthorized>
-        <p><a href="/Account/Login">Logga in</a> för att skapa en tråd.</p>
-    </NotAuthorized>
-</AuthorizeView>
+    <h1>@category?.Name</h1>
 
+    @if (category is not null && category.SubCategories.Count > 0)
+    {
+        <ul class="categories">
+            @foreach (var sub in category.SubCategories)
+            {
+                <li>
+                    <a href="/categories/@sub.Id">@sub.Name</a>
+                    @if (!string.IsNullOrWhiteSpace(sub.Description))
+                    {
+                        <p>@sub.Description</p>
+                    }
+                </li>
+            }
+        </ul>
+    }
+
+    @if (category is null || discussions is null)
+    {
+        <p>Laddar...</p>
+    }
+    else if (discussions.Count == 0)
+    {
+        <p>Inga diskussioner ännu.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var discussion in discussions)
+            {
+                <li>
+                    <a href="/discussions/@discussion.Id">@discussion.Title</a>
+                    @if (discussion.IsLocked)
+                    {
+                        <span>(låst)</span>
+                    }
+                    <p>@discussion.AuthorName · @discussion.CreatedAt.ToLocalTime().ToString("g")</p>
+                </li>
+            }
+        </ul>
+    }
+    <AuthorizeView>
+        <Authorized>
+            <a href="/categories/@Id/new">Ny tråd</a>
+        </Authorized>
+        <NotAuthorized>
+            <p><a href="/Account/Login">Logga in</a> för att skapa en tråd.</p>
+        </NotAuthorized>
+    </AuthorizeView>
+}
 
 
 
@@ -48,13 +72,21 @@ else
 
     private CategoryDto? category;
     private IReadOnlyList<DiscussionListDto>? discussions;
+    private bool notFound;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
-    
+
 
     public async Task LoadAsync()
     {
-        discussions = await DiscussionService.GetByCategoryAsync(Id);
-        category = await CategoryService.GetByIdAsync(Id);
+        try
+        {
+            category = await CategoryService.GetByIdAsync(Id);
+            discussions = await DiscussionService.GetByCategoryAsync(Id);
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
     }
 }

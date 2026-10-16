@@ -8,4 +8,5 @@ public interface IDiscussionService
     Task<DiscussionDetailDto> GetDetailAsync(int id, string? userId);
     Task<int> CreateAsync(CreateDiscussionDto dto, string authorId);
     Task SetLockedAsync(int discussionId, bool isLocked);
+    Task DeleteAsync(int id);
 }

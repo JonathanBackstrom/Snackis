@@ -102,6 +102,10 @@ public class CategoryService(ICategoryRepository repository) : ICategoryService
         var category = await repository.GetIdAsync(id)
             ?? throw new NotFoundException($"Kategori med id {id} hittades inte.");
 
-                return category.ToDto([]);
+        var subCategories = category.SubCategories
+            .Select(s => s.ToDto([]))
+            .ToList();
+
+        return category.ToDto(subCategories);
     }
 }

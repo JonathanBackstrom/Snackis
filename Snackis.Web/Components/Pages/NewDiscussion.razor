@@ -3,33 +3,41 @@
 @attribute [Authorize]
 @rendermode InteractiveServer
 @inject IDiscussionService DiscussionService
+@inject ICategoryService CategoryService
 @inject NavigationManager Navigation
 
 <PageTitle>Ny tråd</PageTitle>
 
-<h1>Ny tråd</h1>
+@if (notFound)
+{
+    <p>Kategorin kunde inte hittas.</p>
+    <p><a href="/forum">Tillbaka till forumet</a></p>
+}
+else
+{
+    <h1>Ny tråd i @category?.Name</h1>
 
-<EditForm Model="newDiscussion" OnValidSubmit="HandleCreate">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+    <EditForm Model="newDiscussion" OnValidSubmit="HandleCreate">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
 
-    <p>
-        <label>
-            Rubrik<br />
-            <InputText @bind-Value="newDiscussion.Title" />
-        </label>
-    </p>
-    <p>
-        <label>
-            Inlägg<br />
-            <InputTextArea @bind-Value="newDiscussion.Body" rows="8" />
-        </label>
-    </p>
+        <p>
+            <label>
+                Rubrik<br />
+                <InputText @bind-Value="newDiscussion.Title" />
+            </label>
+        </p>
+        <p>
+            <label>
+                Inlägg<br />
+                <InputTextArea @bind-Value="newDiscussion.Body" rows="8" />
+            </label>
+        </p>
 
-    <button type="submit">Skapa tråd</button>
-    <a href="/categories/@CategoryId">Avbryt</a>
-</EditForm>
-
+        <button type="submit">Skapa tråd</button>
+        <a href="/categories/@CategoryId">Avbryt</a>
+    </EditForm>
+}
 @if (error is not null)
 {
     <p class="text-danger">@error</p>
@@ -46,6 +54,8 @@
     private CreateDiscussionDto newDiscussion = new();
     private string? userId;
     private string? error;
+    private CategoryDto? category;
+    private bool notFound;
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,6 +63,15 @@
         userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         newDiscussion.CategoryId = CategoryId;
+
+        try
+        {
+            category = await CategoryService.GetByIdAsync(CategoryId);
+        }
+        catch (NotFoundException)
+        {
+            notFound = true;
+        }
     }
 
     private async Task HandleCreate()

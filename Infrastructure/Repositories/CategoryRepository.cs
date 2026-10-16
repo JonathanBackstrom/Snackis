@@ -42,7 +42,10 @@ public class CategoryRepository(IDbContextFactory<ApplicationDbContext> factory)
     {
         await using var context = await factory.CreateDbContextAsync();
 
-        return await context.Categories.FindAsync(id);
+        return await context.Categories
+            .Include(c => c.SubCategories.OrderBy(s => s.SortOrder).ThenBy(s => s.Name))
+            .FirstOrDefaultAsync(c => c.Id == id);
+
     }
 
     public async Task UpdateAsync(Category category)

@@ -5,20 +5,37 @@
 @inject IPostService PostService
 @inject IReportService ReportService
 @inject IReactionService ReactionService
-
-@using System.Security.Claims
-@using Snackis.Application.Validation
+@inject NavigationManager Navigation
 
 <PageTitle>@discussion?.Title</PageTitle>
 
-@if (discussion is null)
+@if (notFound)
+{
+    <p>Tråden finns inte längre.</p>
+    <p><a href="/forum">Tillbaka till forumet</a></p>
+}
+else if (discussion is null)
 {
     <p>Laddar...</p>
 }
 else
 {
+
     <p><a href="/categories/@discussion.CategoryId">@discussion.CategoryName</a></p>
     <h1>@discussion.Title</h1>
+    @if (isAdmin)
+    {
+        <p class="admin-bar">
+            <button @onclick="ToggleLock">
+                @(discussion.IsLocked ? "Lås upp tråden" : "Lås tråden")
+            </button>
+
+            <button @onclick="DeleteClicked">
+                @(confirmDelete ? "Klicka igen för att ta bort" : "Ta bort tråden")
+            </button>
+        </p>
+    }
+
 
     @if (discussion.IsLocked)
     {
@@ -99,142 +116,3 @@ else
     }
 }
 
-@code
-{
-    [CascadingParameter]
-    public Task<AuthenticationState>? AuthState { get; set; }
-
-    [Parameter]
-    public int Id { get; set; }
-
-    private DiscussionDetailDto? discussion;
-    private string? userId;
-    private bool isAdmin;
-    private CreatePostDto newPost = new();
-    private string? error;
-    private int? replyToPostId;
-    private int? reportPostId;
-    private CreateReportDto newReport = new();
-    private string? message;
-    private IReadOnlyList<IBrowserFile> selectedFiles = [];
-
-    protected override async Task OnInitializedAsync()
-    {
-        var state = await AuthState!;
-        userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        isAdmin = state.User.IsInRole("Admin");
-
-        await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
-        discussion = await DiscussionService.GetDetailAsync(Id, userId);
-    }
-
-    private void StartReply(int postId)
-    {
-        replyToPostId = postId;
-        error = null;
-
-        error = null;
-        message = null;
-    }
-
-    private async Task HandleReply()
-    {
-        error = null;
-
-        try
-        {
-            newPost.DiscussionId = Id;
-            newPost.ParentPostId = replyToPostId;
-
-            var postId = await PostService.CreateAsync(newPost, userId!);
-
-            foreach (var fil in selectedFiles)
-            {
-                await using var stream = fil.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
-                await PostService.AddImageAsync(postId, stream, fil.Name, fil.Size, userId!);
-            }
-
-            newPost = new();
-            selectedFiles = [];
-            replyToPostId = null;
-
-            await LoadAsync();
-        }
-        catch (IOException)
-        {
-            error = "Inlägget skapades, men en bild kunde inte laddas upp.";
-        }
-        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
-        {
-            error = ex.Message;
-        }
-    }
-
-    private void StartReport(int postID)
-    {
-        reportPostId = postID;
-        newReport = new() { PostId = postID };
-        replyToPostId = null;
-
-        error = null;
-        message = null;
-    }
-
-    private async Task HandleReport()
-    {
-        error = null;
-        try
-        {
-            await ReportService.CreateAsync(newReport, userId!);
-
-            reportPostId = null;
-            newReport = new();
-            message = "Tack, din anmälan har skickats till moderatorerna.";
-        }
-        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
-        {
-            error = ex.Message;
-        }
-    }
-
-    private async Task HandleReact((int PostId, ReactionType type) reaction)
-    {
-        error = null;
-
-        try
-        {
-            await ReactionService.ReactAsync(reaction.PostId, userId!, reaction.type);
-            await LoadAsync();
-        }
-        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
-        {
-            error = ex.Message;
-        }
-    }
-
-    private void HandleFiles(InputFileChangeEventArgs e)
-    {
-        error = null;
-        selectedFiles = [];
-
-        try
-        {
-            var files = e.GetMultipleFiles(maximumFileCount: 4);
-
-            foreach (var file in files)
-            {
-                ImageRules.Validate(file.Name, file.Size);
-            }
-
-            selectedFiles = files;
-        }
-        catch (BusinessRuleException ex)
-        {
-            error = ex.Message;
-        }
-    }
-}

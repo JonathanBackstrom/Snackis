@@ -54,7 +54,10 @@
         <button @onclick="() => OnReport.InvokeAsync(Post.Id)">Anmäl</button>
     }
 </article>
-
+    
+@if (Post.Replies.Count > 0)
+{
+    <div class="replies">
     @foreach (var reply in Post.Replies)
     {
         <PostNode Post="reply"
@@ -65,6 +68,8 @@
                   OnReport="OnReport"
                   OnReact="OnReact"/>
     }
+    </div>
+}
 
 
 @code {

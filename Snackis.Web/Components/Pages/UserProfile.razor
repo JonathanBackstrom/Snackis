@@ -7,9 +7,10 @@
 
 <PageTitle>@(profile?.DisplayName ?? "Profil")</PageTitle>
 
-@if (error is not null)
+@if (notFound)
 {
-    <p class="text-danger">@error</p>
+    <p>Användaren kunde inte hittas.</p>
+    <p><a href="/forum">Tillbaka till forumet</a></p>
 }
 else if (profile is null)
 {
@@ -39,6 +40,11 @@ else
             }
         </Authorized>
     </AuthorizeView>
+
+    @if (error is not null)
+    {
+        <p class="text-danger">@error</p>
+    }
 }
 
 @code {
@@ -51,6 +57,8 @@ else
     private ProfileDto? profile;
     private string? userId;
     private string? error;
+    private bool notFound;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,9 +69,9 @@ else
         {
             profile = await profileService.GetProfileAsync(Id);
         }
-        catch (NotFoundException ex)
+        catch (NotFoundException)
         {
-            error = ex.Message;
+            notFound = true;
         }
     }
 

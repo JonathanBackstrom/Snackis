@@ -19,6 +19,13 @@ public class DiscussionService(IDiscussionRepository discussionRepository,
         var created = await discussionRepository.AddWithFirstPostAsync(discussion, post);
         return created.Id;
     }
+    public async Task DeleteAsync(int id)
+    {
+        _ = await discussionRepository.GetIdAsync(id)
+            ?? throw new NotFoundException($"Diskussion med id {id} hittades inte");
+
+        await discussionRepository.DeleteAsync(id);
+    }
 
     public async Task<IReadOnlyList<DiscussionListDto>> GetByCategoryAsync(int categoryId)
     {
