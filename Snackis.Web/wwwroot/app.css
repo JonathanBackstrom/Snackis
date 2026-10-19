@@ -105,7 +105,8 @@ header nav form {
     display: inline;
 }
 
-header nav button {
+header nav button,
+header nav button[type="submit"] {
     background: none;
     border: 0;
     padding: 0;
@@ -114,6 +115,10 @@ header nav button {
     color: var(--muted);
     text-decoration: underline;
     cursor: pointer;
+}
+
+header nav button:hover {
+    color: var(--accent);
 }
 
 main {

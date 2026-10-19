@@ -1,0 +1,105 @@
+﻿@page "/api-demo"
+@rendermode InteractiveServer
+@inject IHttpClientFactory HttpClientFactory
+
+@using System.Diagnostics
+@using System.Text.Json
+
+<PageTitle>API-demo</PageTitle>
+
+<h1>API-demo</h1>
+
+<p>
+    Sidan hämtar inlägg från Snackis API över HTTP. Webben och API:t är
+    separata applikationer med varsin adress och delar bara databasen.
+</p>
+
+<p>
+    <label>
+        Diskussions-id
+        <input type="number" @bind="discussionId" />
+    </label>
+    <button @onclick="Fetch">Hämta</button>
+</p>
+
+@if (requestUrl is not null)
+{
+    <p><code>GET @requestUrl</code></p>
+    <p>Svar: <strong>@status</strong> på @elapsed ms</p>
+}
+
+@if (error is not null)
+{
+    <p class="text-danger">@error</p>
+}
+
+@if (posts is not null)
+{
+    <h2>@posts.Count inlägg</h2>
+
+    <ul>
+        @foreach (var post in posts)
+        {
+            <li>
+                <strong>@post.AuthorName</strong> · @post.CreatedAt.ToLocalTime().ToString("g")
+                @if (post.ParentPostId is not null)
+                {
+                    <em>(svar på @post.ParentPostId)</em>
+                }
+                <p>@(post.IsDeleted ? "[Inlägg borttaget]" : post.Body)</p>
+            </li>
+        }
+    </ul>
+
+    <h2>Rådata</h2>
+    <pre>@json</pre>
+}
+    @code {
+
+    private int discussionId = 1;
+    private IReadOnlyList<PostListDto>? posts;
+    private string? requestUrl;
+    private string? status;
+    private string? error;
+    private string? json;
+    private long elapsed;
+
+    private async Task Fetch()
+    {
+        error = null;
+        posts = null;
+        json = null;
+
+        var client = HttpClientFactory.CreateClient("SnackisApi");
+        var path = $"api/discussions/{discussionId}/posts";
+
+        requestUrl = new Uri(client.BaseAddress!, path).ToString();
+
+        var timer = Stopwatch.StartNew();
+
+        try
+        {
+            var response = await client.GetAsync(path);
+            timer.Stop();
+
+            elapsed = timer.ElapsedMilliseconds;
+            status = $"{(int)response.StatusCode} {response.ReasonPhrase}";
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                error = body;
+                return;
+            }
+
+            json = body;
+            posts = JsonSerializer.Deserialize<List<PostListDto>>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (Exception ex)
+        {
+            timer.Stop();
+            error = $"Anropet misslyckades: {ex.Message}";
+        }
+    }
+}

@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Snackis.Infrastructure.Data;
+using Snackis.Application;
+using Snackis.Domain.Entities;
 using Snackis.Infrastructure;
+using Snackis.Infrastructure.Data;
 using Snackis.Web.Components;
 using Snackis.Web.Components.Account;
-using Snackis.Domain.Entities;
-using Snackis.Application;
+using System.Globalization;
 
 namespace Snackis.Web;
 
@@ -30,11 +31,18 @@ public class Program
             })
             .AddIdentityCookies();
 
+        //DI
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
 
         builder.Services.AddProfiles();
         builder.Services.AddFileStorage(Path.Combine(builder.Environment.WebRootPath, "uploads"));
+
+        builder.Services.AddHttpClient("SnackisApi", client =>
+        {
+            client.BaseAddress = new Uri(builder.Configuration["Api:BaseUrl"]!);
+        });
+
 
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -48,6 +56,11 @@ public class Program
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddSignInManager()
             .AddDefaultTokenProviders();
+
+        //Timestamp
+        var svenska = new CultureInfo("sv-SE");
+        CultureInfo.DefaultThreadCurrentCulture = svenska;
+        CultureInfo.DefaultThreadCurrentUICulture = svenska;
 
         builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 

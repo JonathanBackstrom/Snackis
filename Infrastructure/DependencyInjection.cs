@@ -17,7 +17,11 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection saknas.");
 
         services.AddDbContextFactory<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseSqlServer(connectionString, sql =>
+            sql.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorNumbersToAdd: null)));
 
         services.AddScoped<ApplicationDbContext>(sp =>
             sp.GetRequiredService<IDbContextFactory<ApplicationDbContext>>().CreateDbContext());

@@ -18,6 +18,7 @@ public class Program
 
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
+        builder.Services.AddFileStorage(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads"));
 
         var app = builder.Build();
 
