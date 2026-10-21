@@ -68,11 +68,18 @@ public class Program
 
         using (var scope = app.Services.CreateScope())
         {
-            await DbSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
+            try
+            {
+                await DbSeeder.SeedAsync(scope.ServiceProvider, builder.Configuration);
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogError(ex, "Seedningen misslyckades vid uppstart");
+            }
         }
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
             {
                 app.UseMigrationsEndPoint();
             }

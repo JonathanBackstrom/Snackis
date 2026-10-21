@@ -27,6 +27,11 @@ else
             <li>
                 <a href="/account/messages/@conversation.Id">@conversation.Title</a>
 
+                @if (conversation.IsGroup)
+                {
+                    <span class="badge">Grupp</span>
+                }
+
                 @if (conversation.UnreadCount > 0)
                 {
                     <strong>(@conversation.UnreadCount nya)</strong>
