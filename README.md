@@ -1,3 +1,2 @@
 Ai genererat -
-Tester och ccs
-översättning till svenska inom identity 
+Tester, ccs och översättning till svenska inom identity 
