@@ -10,7 +10,10 @@ public interface IConversationRepository
     Task<Conversation> AddAsync(Conversation conversation);
     Task<IReadOnlyList<Message>> GetMessagesAsync(int conversationId);
     Task<Message> AddMessageAsync(Message message);
+    Task<Message?> GetMessageAsync(int messageId);
+    Task DeleteMessageAsync(int messageId);
     Task MarkAsReadAsync(int conversationId, string userId);
+    Task HideAsync(int conversationId, string userId);
     Task AddParticipantAsync(ConversationParticipant participant);
     Task RemoveParticipantAsync(int conversationId, string userId);
 }

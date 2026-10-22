@@ -58,6 +58,7 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
                  c.Id,
                  BuildTitle(c, userId),
                  c.IsGroup,
+                 c.OwnerId == userId,
                  last?.Body,
                  last?.SentAt,
                  CountUnread(c, userId));
@@ -97,6 +98,22 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
         });
     }
 
+    public async Task DeleteMessageAsync(int conversationId, int messageId, string userId)
+    {
+        _ = await GetForParticipantAsync(conversationId, userId);
+
+        var message = await conversationRepo.GetMessageAsync(messageId)
+            ?? throw new NotFoundException("Meddelandet hittades inte");
+
+        if (message.ConversationId != conversationId)
+            throw new NotFoundException("Meddelandet hittades inte");
+
+        if (message.SenderId != userId)
+            throw new BusinessRuleException("Du kan bara ta bort dina egna meddelanden");
+
+        await conversationRepo.DeleteMessageAsync(messageId);
+    }
+
     public async Task<int> StartDirectAsync(string userId, string otherUserId)
     {
         if (userId == otherUserId)
@@ -127,6 +144,9 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
 
     public async Task<int> CreateGroupAsync(CreateGroupDto dto, string ownerId)
     {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            throw new BusinessRuleException("Gruppen måste ha ett namn");
+
         var conversation = new Conversation
         {
             IsGroup = true,
@@ -178,6 +198,26 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
         });
     }
 
+    public async Task HideAsync(int conversationId, string userId)
+    {
+        _ = await GetForParticipantAsync(conversationId, userId);
+
+        await conversationRepo.HideAsync(conversationId, userId);
+    }
+
+    public async Task LeaveGroupAsync(int conversationId, string userId)
+    {
+        var conversation = await GetForParticipantAsync(conversationId, userId);
+
+        if (!conversation.IsGroup)
+            throw new BusinessRuleException("Du kan bara lämna grupper.");
+
+        if (conversation.OwnerId == userId)
+            throw new BusinessRuleException("Som skapare kan du inte lämna gruppen.");
+
+        await conversationRepo.RemoveParticipantAsync(conversationId, userId);
+    }
+
     public async Task RemoveParticipantAsync(int conversationId, string ownerId, string userIdToRemove)
     {
         var conversation = await GetForParticipantAsync(conversationId, ownerId);
@@ -199,6 +239,9 @@ public class ConversationService(IConversationRepository conversationRepo, IUser
 
     public async Task<int> CreateGroupFromDirectAsync(int conversationId, string userId, CreateGroupDto dto, string invitedUserId)
     {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            throw new BusinessRuleException("Gruppen måste ha ett namn");
+
         var conversation = await GetForParticipantAsync(conversationId, userId);
 
         if (conversation.IsGroup)

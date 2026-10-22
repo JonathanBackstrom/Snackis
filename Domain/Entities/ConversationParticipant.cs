@@ -6,6 +6,7 @@ public class ConversationParticipant
     public string UserId { get; set; } = string.Empty;
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastReadAt { get; set; }
+    public DateTime? HiddenAt { get; set; }
 
     public Conversation Conversation { get; set; } = null!;
     public ApplicationUser User { get; set; } = null!;

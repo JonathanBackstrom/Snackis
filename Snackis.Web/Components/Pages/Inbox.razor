@@ -25,7 +25,9 @@ else
         @foreach (var conversation in conversations)
         {
             <li>
-                <a href="/account/messages/@conversation.Id">@conversation.Title</a>
+                <a href="/account/messages/@conversation.Id">
+                    @(string.IsNullOrWhiteSpace(conversation.Title) ? "(namnlös)" : conversation.Title)
+                </a>
 
                 @if (conversation.IsGroup)
                 {
@@ -40,6 +42,17 @@ else
                 @if (conversation.LastMessage is not null)
                 {
                     <p>@conversation.LastMessage · @conversation.LastMessageAt?.ToLocalTime().ToString("g")</p>
+                }
+
+                <button @onclick="() => HideClicked(conversation.Id)">
+                    @(confirmHideId == conversation.Id ? "Klicka igen för att dölja" : "Dölj")
+                </button>
+
+                @if (conversation.IsGroup && !conversation.IsOwner)
+                {
+                    <button @onclick="() => LeaveClicked(conversation.Id)">
+                        @(confirmLeaveId == conversation.Id ? "Klicka igen för att lämna" : "Lämna gruppen")
+                    </button>
                 }
             </li>
         }
@@ -73,6 +86,8 @@ else
     private CreateGroupDto newGroup = new();
     private string? userId;
     private string? error;
+    private int? confirmLeaveId;
+    private int? confirmHideId;
 
     private IReadOnlyList<ConversationListDto>? conversations;
 
@@ -82,6 +97,54 @@ else
         userId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         conversations = await ConversationService.GetInboxAsync(userId!);
+    }
+
+    private async Task HideClicked(int conversationId)
+    {
+        error = null;
+
+        if (confirmHideId != conversationId)
+        {
+            confirmHideId = conversationId;
+            return;
+        }
+
+        try
+        {
+            await ConversationService.HideAsync(conversationId, userId!);
+
+            confirmHideId = null;
+            conversations = await ConversationService.GetInboxAsync(userId!);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+            confirmHideId = null;
+        }
+    }
+
+    private async Task LeaveClicked(int conversationId)
+    {
+        error = null;
+
+        if (confirmLeaveId != conversationId)
+        {
+            confirmLeaveId = conversationId;
+            return;
+        }
+
+        try
+        {
+            await ConversationService.LeaveGroupAsync(conversationId, userId!);
+
+            confirmLeaveId = null;
+            conversations = await ConversationService.GetInboxAsync(userId!);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+            confirmLeaveId = null;
+        }
     }
 
     private async Task HandleCreateGroup()

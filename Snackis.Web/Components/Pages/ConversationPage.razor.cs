@@ -63,6 +63,21 @@ public partial class ConversationPage
         }
     }
 
+    private async Task HandleDeleteMessage(int messageId)
+    {
+        error = null;
+
+        try
+        {
+            await ConversationService.DeleteMessageAsync(Id, messageId, userId!);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or NotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
     private async Task Search()
     {
         error = null;

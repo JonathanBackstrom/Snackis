@@ -16,6 +16,26 @@ public class ConversationRepository(IDbContextFactory<ApplicationDbContext> fact
         return conversation;
     }
 
+    public async Task<Message?> GetMessageAsync(int messageId)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        return await context.Messages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+    }
+
+    public async Task DeleteMessageAsync(int messageId)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        var message = await context.Messages.FindAsync(messageId);
+        if (message is null) return;
+
+        context.Messages.Remove(message);
+        await context.SaveChangesAsync();
+    }
+
     public async Task<Message> AddMessageAsync(Message message)
     {
         await using var context = await factory.CreateDbContextAsync();
@@ -60,7 +80,9 @@ public class ConversationRepository(IDbContextFactory<ApplicationDbContext> fact
             .Include(c => c.Participants)
                 .ThenInclude(p => p.User)
             .Include(c => c.Messages)
-            .Where(c => c.Participants.Any(p => p.UserId == userId))
+            .Where(c => c.Participants.Any(p => p.UserId == userId
+                && (p.HiddenAt == null
+                    || c.Messages.Any(m => m.SentAt > p.HiddenAt))))
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
     }
@@ -75,6 +97,19 @@ public class ConversationRepository(IDbContextFactory<ApplicationDbContext> fact
             .Where(m => m.ConversationId == conversationId)
             .OrderBy(m => m.SentAt)
             .ToListAsync();
+    }
+
+    public async Task HideAsync(int conversationId, string userId)
+    {
+        await using var context = await factory.CreateDbContextAsync();
+
+        var participant = await context.ConversationParticipants
+            .FirstOrDefaultAsync(p => p.ConversationId == conversationId && p.UserId == userId);
+
+        if (participant is null) return;
+
+        participant.HiddenAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
     }
 
     public async Task MarkAsReadAsync(int conversationId, string userId)

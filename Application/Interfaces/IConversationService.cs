@@ -8,9 +8,12 @@ public interface IConversationService
     Task<ConversationDetailDto> GetAsync(int conversationId, string userId);
     Task<int> StartDirectAsync(string userId, string otherUserId);
     Task SendAsync(SendMessageDto dto, string senderId);
+    Task DeleteMessageAsync(int conversationId, int messageId, string userId);
     Task<int> CreateGroupAsync(CreateGroupDto dto, string ownerId);
     Task<IReadOnlyList<ParticipantDto>> SearchInviteCandidatesAsync(int conversationId, string userId, string term);
     Task InviteAsync(int conversationId, string userId, string invitedUserId);
     Task RemoveParticipantAsync(int conversationId, string ownerId, string userIdToRemove);
+    Task LeaveGroupAsync(int conversationId, string userId);
+    Task HideAsync(int conversationId, string userId);
     Task<int> CreateGroupFromDirectAsync(int conversationId, string userId, CreateGroupDto dto, string invitedUserId);
 }

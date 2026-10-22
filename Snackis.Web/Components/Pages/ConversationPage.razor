@@ -114,6 +114,11 @@ else
                         · @message.SentAt.ToLocalTime().ToString("g")
                 </p>
                 <p>@message.Body</p>
+
+                @if (message.SenderId == userId)
+                {
+                    <button @onclick="() => HandleDeleteMessage(message.Id)">Ta bort</button>
+                }
             </article>
         }
     }
